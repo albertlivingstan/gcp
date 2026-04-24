@@ -922,6 +922,9 @@
     <!-- Main Content -->
     <main class="main-content">
       <div class="top-nav">
+        <button class="theme-toggle" onclick="openHistoryModal()" style="margin-right: 15px;">
+          <i class="fa-solid fa-clock-rotate-left"></i> <span>History</span>
+        </button>
         <a href="index.html" class="theme-toggle" style="text-decoration: none; margin-right: 15px;">
           <i class="fa-brands fa-google"></i> <span>GCP Lab</span>
         </a>
@@ -1028,7 +1031,31 @@
         <h3><i class="fa-solid fa-code"></i> VS Code Environment</h3>
         <button class="close-modal" onclick="closeEditorModal()"><i class="fa-solid fa-times"></i></button>
       </div>
+      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <input type="text" id="session-name" placeholder="Enter session name..." style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main);">
+        <button class="btn-primary" onclick="submitSession()" style="width: auto;">
+          <i class="fa-solid fa-paper-plane"></i> Submit Code
+        </button>
+      </div>
       <div id="monaco-editor" style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px;"></div>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div class="modal-overlay" id="history-modal">
+    <div class="modal-content" style="max-width: 800px; width: 95%; height: 80vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Revision History</h3>
+        <div style="display: flex; gap: 15px; align-items: center;">
+          <button class="btn-primary" onclick="deleteAllHistory()" style="background: #ef4444; width: auto; padding: 6px 12px; font-size: 0.85rem;">
+            <i class="fa-solid fa-trash"></i> Delete All
+          </button>
+          <button class="close-modal" onclick="closeHistoryModal()"><i class="fa-solid fa-times"></i></button>
+        </div>
+      </div>
+      <div id="history-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding-right: 5px;">
+        <!-- history items -->
+      </div>
     </div>
   </div>
 
@@ -1658,9 +1685,108 @@
       document.getElementById('editor-modal').classList.remove('active');
     }
 
+    function submitSession() {
+      const name = document.getElementById('session-name').value.trim();
+      if (!name) {
+        alert("Please enter a session name!");
+        return;
+      }
+      const code = window.monacoEditor.getValue();
+      const history = JSON.parse(localStorage.getItem('devops_sessions_history') || '[]');
+      history.push({
+        id: Date.now(),
+        sessionName: name,
+        expTitle: currentExp ? currentExp.title : "Free Practice",
+        code: code,
+        date: new Date().toLocaleString()
+      });
+      localStorage.setItem('devops_sessions_history', JSON.stringify(history));
+      alert("Session submitted successfully! You can view it in the History page.");
+      closeEditorModal();
+      document.getElementById('session-name').value = '';
+    }
+
+    function openHistoryModal() {
+      document.getElementById('history-modal').classList.add('active');
+      renderHistory();
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('history-modal').classList.remove('active');
+    }
+
+    function deleteAllHistory() {
+      if (confirm("Are you sure you want to delete all revision history? This cannot be undone.")) {
+        localStorage.removeItem('devops_sessions_history');
+        renderHistory();
+      }
+    }
+
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem('devops_sessions_history') || '[]');
+      const list = document.getElementById('history-list');
+      if (history.length === 0) {
+        list.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-top: 20px;">No sessions submitted yet.</p>';
+        return;
+      }
+      
+      list.innerHTML = history.slice().reverse().map(h => `
+        <div style="background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary);">${h.sessionName}</h4>
+              <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">Exp: ${h.expTitle}</p>
+              <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${h.date}</p>
+            </div>
+            <button class="btn-primary" onclick="downloadPdf(${h.id})" style="width: auto; padding: 6px 12px; font-size: 0.85rem;">
+              <i class="fa-solid fa-file-pdf"></i> Download PDF
+            </button>
+          </div>
+          <div style="background: var(--terminal-bg); color: var(--terminal-text); padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; max-height: 150px; overflow-y: auto; white-space: pre-wrap;">${h.code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        </div>
+      `).join('');
+    }
+
+    function downloadPdf(id) {
+      const history = JSON.parse(localStorage.getItem('devops_sessions_history') || '[]');
+      const session = history.find(h => h.id === id);
+      if (!session) return;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("DevOps Lab Revision - Code Submission", 10, 20);
+      
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text("Session Name: " + session.sessionName, 10, 30);
+      doc.text("Experiment: " + session.expTitle, 10, 40);
+      doc.text("Date: " + session.date, 10, 50);
+      
+      doc.setFont("courier", "normal");
+      doc.setFontSize(10);
+      
+      const splitCode = doc.splitTextToSize(session.code, 180);
+      let y = 65;
+      
+      for(let i=0; i<splitCode.length; i++) {
+        if(y > 280) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(splitCode[i], 10, y);
+        y += 5;
+      }
+      
+      doc.save("DevOps_Session_" + session.sessionName.replace(/\\s+/g, '_') + ".pdf");
+    }
+
     window.onload = init;
   </script>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs/loader.min.js"></script>
   <script>
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs' }});

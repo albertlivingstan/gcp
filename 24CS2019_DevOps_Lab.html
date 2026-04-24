@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GCP Lab Revision Pro</title>
+  <title>DevOps Lab Revision Pro</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
@@ -20,16 +20,18 @@
       --primary-hover: #3b82f6;
       --success: #10b981;
       --success-hover: #059669;
-      --tag-net-bg: #dbeafe;
-      --tag-net-text: #1e40af;
-      --tag-comp-bg: #f3e8ff;
-      --tag-comp-text: #6b21a8;
-      --tag-stor-bg: #dcfce7;
-      --tag-stor-text: #166534;
-      --tag-iam-bg: #ffedd5;
-      --tag-iam-text: #9a3412;
-      --tag-lb-bg: #ffe4e6;
-      --tag-lb-text: #9f1239;
+      --tag-git-bg: #dbeafe;
+      --tag-git-text: #1e40af;
+      --tag-docker-bg: #e0f2fe;
+      --tag-docker-text: #0369a1;
+      --tag-py-bg: #fef3c7;
+      --tag-py-text: #b45309;
+      --tag-ci-bg: #dcfce7;
+      --tag-ci-text: #166534;
+      --tag-jen-bg: #fee2e2;
+      --tag-jen-text: #991b1b;
+      --tag-k8s-bg: #f3e8ff;
+      --tag-k8s-text: #6b21a8;
       --terminal-bg: #1e1e1e;
       --terminal-text: #d4d4d4;
     }
@@ -43,16 +45,18 @@
       --border-color: #334155;
       --primary: #3b82f6;
       --primary-hover: #60a5fa;
-      --tag-net-bg: #1e3a8a;
-      --tag-net-text: #bfdbfe;
-      --tag-comp-bg: #581c87;
-      --tag-comp-text: #e9d5ff;
-      --tag-stor-bg: #14532d;
-      --tag-stor-text: #bbf7d0;
-      --tag-iam-bg: #7c2d12;
-      --tag-iam-text: #fed7aa;
-      --tag-lb-bg: #881337;
-      --tag-lb-text: #fecdd3;
+      --tag-git-bg: #1e3a8a;
+      --tag-git-text: #bfdbfe;
+      --tag-docker-bg: #0c4a6e;
+      --tag-docker-text: #bae6fd;
+      --tag-py-bg: #78350f;
+      --tag-py-text: #fde68a;
+      --tag-ci-bg: #14532d;
+      --tag-ci-text: #bbf7d0;
+      --tag-jen-bg: #7f1d1d;
+      --tag-jen-text: #fecaca;
+      --tag-k8s-bg: #4c1d95;
+      --tag-k8s-text: #e9d5ff;
       --terminal-bg: #000000;
       --terminal-text: #00ff00;
     }
@@ -283,30 +287,57 @@
       width: fit-content;
     }
 
-    .tag-network {
-      background: var(--tag-net-bg);
-      color: var(--tag-net-text);
+    .tag-git {
+      background: var(--tag-git-bg);
+      color: var(--tag-git-text);
     }
 
-    .tag-compute {
-      background: var(--tag-comp-bg);
-      color: var(--tag-comp-text);
+    .tag-docker {
+      background: var(--tag-docker-bg);
+      color: var(--tag-docker-text);
     }
 
-    .tag-storage {
-      background: var(--tag-stor-bg);
-      color: var(--tag-stor-text);
+    .tag-python {
+      background: var(--tag-py-bg);
+      color: var(--tag-py-text);
     }
 
-    .tag-iam {
-      background: var(--tag-iam-bg);
-      color: var(--tag-iam-text);
+    .tag-ci {
+      background: var(--tag-ci-bg);
+      color: var(--tag-ci-text);
     }
 
-    .tag-lb {
-      background: var(--tag-lb-bg);
-      color: var(--tag-lb-text);
+    .tag-jenkins {
+      background: var(--tag-jen-bg);
+      color: var(--tag-jen-text);
     }
+    
+    .tag-k8s {
+      background: var(--tag-k8s-bg);
+      color: var(--tag-k8s-text);
+    }
+    
+    .code-block-container {
+      background: var(--terminal-bg);
+      color: var(--terminal-text);
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .code-lang-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      display: block;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 3px;
+    }
+    
 
     /* Main Content */
     .main-content {
@@ -856,7 +887,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <h1><i class="fa-brands fa-google"></i> GCP Revision</h1>
+        <h1><i class="fa-brands fa-git-alt"></i> DevOps Revision</h1>
         <div class="progress-container">
           <div class="progress-bar">
             <div class="progress-fill" id="progress-fill"></div>
@@ -875,11 +906,12 @@
 
       <div class="filters" id="filters">
         <button class="filter-btn active" data-filter="all">All</button>
-        <button class="filter-btn" data-filter="network">Network</button>
-        <button class="filter-btn" data-filter="compute">Compute</button>
-        <button class="filter-btn" data-filter="storage">Storage</button>
-        <button class="filter-btn" data-filter="iam">IAM</button>
-        <button class="filter-btn" data-filter="lb">Load Balancer</button>
+        <button class="filter-btn" data-filter="git">Git/GitHub</button>
+        <button class="filter-btn" data-filter="docker">Docker</button>
+        <button class="filter-btn" data-filter="python">Python</button>
+        <button class="filter-btn" data-filter="ci">CI/CD</button>
+        <button class="filter-btn" data-filter="jenkins">Jenkins</button>
+        <button class="filter-btn" data-filter="k8s">Kubernetes</button>
       </div>
 
       <div class="exp-list" id="exp-list">
@@ -890,8 +922,8 @@
     <!-- Main Content -->
     <main class="main-content">
       <div class="top-nav">
-        <a href="24CS2019_DevOps_Lab.html" class="theme-toggle" style="text-decoration: none; margin-right: 15px;">
-          <i class="fa-solid fa-code-branch"></i> <span>DevOps Lab</span>
+        <a href="index.html" class="theme-toggle" style="text-decoration: none; margin-right: 15px;">
+          <i class="fa-brands fa-google"></i> <span>GCP Lab</span>
         </a>
         <button class="theme-toggle" id="theme-toggle">
           <i class="fa-solid fa-moon"></i> <span>Dark Mode</span>
@@ -933,19 +965,7 @@
               </div>
             </div>
 
-            <div class="card">
-              <h3 class="card-title"><i class="fa-solid fa-terminal"></i> gcloud CLI Commands</h3>
-              <div class="terminal">
-                <div class="terminal-header">
-                  <div class="term-dot red"></div>
-                  <div class="term-dot yellow"></div>
-                  <div class="term-dot green"></div>
-                </div>
-                <div class="terminal-body" id="detail-cli">
-                  <span class="prompt">$</span> gcloud compute instances create my-vm
-                </div>
-              </div>
-            </div>
+
           </div>
 
           <!-- Right Column -->
@@ -985,7 +1005,7 @@
         <button class="close-modal" onclick="closeCertModal()"><i class="fa-solid fa-times"></i></button>
       </div>
       <p style="margin-bottom: 20px; color: var(--text-muted); font-size: 0.95rem;">Congratulations on completing all 10
-        GCP Lab Revision Experiments! Enter your name below to generate your certificate.</p>
+        DevOps Lab Revision Experiments! Enter your name below to generate your certificate.</p>
       <div class="form-group">
         <label for="cert-name">Full Name</label>
         <input type="text" id="cert-name" placeholder="e.g. Firstname Lastname" required>
@@ -1000,156 +1020,276 @@
 
   <script>
     const experiments = [
+  {
+    "id": 1,
+    "title": "Git Operations & PR",
+    "category": "git",
+    "tagLabel": "Git",
+    "tagClass": "tag-git",
+    "goal": "Perform Git operations to commit, push, merge branches, and create a pull request on GitHub.",
+    "steps": [
       {
-        id: 1, title: "Custom VPC (Multi-region)", category: "network", tagLabel: "Network", tagClass: "tag-network",
-        goal: "Create a VPC with subnets in 2 different regions.",
-        steps: [
-          { text: "Go to <code>VPC Network → VPC networks</code>" },
-          { text: "Click <code>Create VPC</code> and name it <code>custom-vpc</code>" },
-          { text: "Set mode to <code>Custom</code>" },
-          { text: "Add Subnet 1 — name: <code>subnet-us</code>, region: <code>us-central1</code>, IP: <code>10.0.1.0/24</code>" },
-          { text: "Add Subnet 2 — name: <code>subnet-asia</code>, region: <code>asia-east1</code>, IP: <code>10.0.2.0/24</code>" },
-          { text: "Click <code>Create</code>" }
-        ],
-        tip: "Custom mode = you define each subnet manually. Auto mode creates one subnet per region automatically — avoid that here.",
-        cli: "<span class='prompt'>$</span> gcloud compute networks create custom-vpc --subnet-mode=custom\n<span class='prompt'>$</span> gcloud compute networks subnets create subnet-us --network=custom-vpc --region=us-central1 --range=10.0.1.0/24\n<span class='prompt'>$</span> gcloud compute networks subnets create subnet-asia --network=custom-vpc --region=asia-east1 --range=10.0.2.0/24"
+        "text": "Initialise repo & first commit",
+        "code": "git init myproject\ncd myproject\necho \"# My DevOps Project\" > README.md\ngit add README.md\ngit commit -m \"Initial commit: add README\"",
+        "lang": "bash"
       },
       {
-        id: 2, title: "VM without External IP + Private Google Access", category: "network", tagLabel: "Network", tagClass: "tag-network",
-        goal: "Create a VM with no external IP and enable Private Google Access on the subnet.",
-        steps: [
-          { text: "Go to <code>Compute Engine → VM instances → Create</code>" },
-          { text: "Under <code>Networking</code>, find the External IP field — set it to <code>None</code>" },
-          { text: "Create the VM" },
-          { text: "Go to <code>VPC Network → Subnets</code>, find your subnet, click <code>Edit</code>" },
-          { text: "Toggle <code>Private Google Access</code> to <code>On</code> and save" }
-        ],
-        tip: "Private Google Access lets VMs without external IPs still reach Google APIs (e.g. Cloud Storage). Remember: it's enabled on the subnet, not the VM.",
-        cli: "<span class='prompt'>$</span> gcloud compute instances create private-vm --no-address --zone=us-central1-a\n<span class='prompt'>$</span> gcloud compute networks subnets update my-subnet --region=us-central1 --enable-private-ip-google-access"
+        "text": "Create a feature branch & make changes",
+        "code": "git checkout -b feature/hello\necho \"Hello from feature branch\" > hello.txt\ngit add hello.txt\ngit commit -m \"feat: add hello.txt\"",
+        "lang": "bash"
       },
       {
-        id: 3, title: "Cloud Storage + Lifecycle Rule", category: "storage", tagLabel: "Storage", tagClass: "tag-storage",
-        goal: "Create a bucket, upload a file, and set a lifecycle rule to move objects to Nearline after 30 days.",
-        steps: [
-          { text: "Go to <code>Cloud Storage → Create Bucket</code>" },
-          { text: "Give it a globally unique name and pick a region, then create" },
-          { text: "Upload any file using <code>Upload Files</code>" },
-          { text: "Go to the <code>Lifecycle</code> tab of the bucket" },
-          { text: "Click <code>Add a rule</code>" },
-          { text: "Condition: <code>Age = 30 days</code>" },
-          { text: "Action: <code>Change storage class → Nearline</code>" },
-          { text: "Save the rule" }
-        ],
-        tip: "Storage class ladder: Standard → Nearline (30d) → Coldline (90d) → Archive (365d). Lifecycle rules only go downward in cost (not back up).",
-        cli: "<span class='prompt'>$</span> gcloud storage buckets create gs://my-unique-bucket-name\n<span class='prompt'>$</span> gcloud storage cp file.txt gs://my-unique-bucket-name/\n<span class='prompt'>$</span> echo '{\"rule\":[{\"action\":{\"type\":\"SetStorageClass\",\"storageClass\":\"NEARLINE\"},\"condition\":{\"age\":30}}]}' > lifecycle.json\n<span class='prompt'>$</span> gcloud storage buckets update gs://my-unique-bucket-name --lifecycle-file=lifecycle.json"
+        "text": "Push to GitHub & open Pull Request",
+        "code": "git remote add origin https://github.com/<username>/myproject.git\ngit push -u origin feature/hello",
+        "lang": "bash"
       },
       {
-        id: 4, title: "Cloud SQL (MySQL)", category: "storage", tagLabel: "Storage", tagClass: "tag-storage",
-        goal: "Create a Cloud SQL MySQL instance with backups enabled.",
-        steps: [
-          { text: "Go to <code>Cloud SQL → Create Instance</code>" },
-          { text: "Choose <code>MySQL</code>" },
-          { text: "Set instance ID, root password, and region" },
-          { text: "Under <code>Backups</code>: enable <code>Automatic backups</code>" },
-          { text: "If asked: enable <code>High Availability</code> (creates a standby replica)" },
-          { text: "Click <code>Create Instance</code>" }
-        ],
-        tip: "Creation takes 2-4 minutes. Automatic backups = point-in-time recovery. High availability = failover replica in another zone.",
-        cli: "<span class='prompt'>$</span> gcloud sql instances create my-instance --database-version=MYSQL_8_0 --cpu=2 --memory=4GB --region=us-central1 --backup-start-time=02:00"
-      },
-      {
-        id: 5, title: "VM with Startup Script (Apache)", category: "compute", tagLabel: "Compute", tagClass: "tag-compute",
-        goal: "Create a VM that automatically installs and starts Apache web server on boot.",
-        steps: [
-          { text: "Go to <code>Compute Engine → VM instances → Create</code>" },
-          { text: "Scroll to <code>Advanced options → Management</code>" },
-          { text: "Paste the startup script in the <code>Startup script</code> field:" },
-          { text: "<code>#! /bin/bash</code><br><code>apt update</code><br><code>apt install -y apache2</code><br><code>systemctl start apache2</code><br><code>systemctl enable apache2</code>" },
-          { text: "Ensure the firewall rule for HTTP (port 80) is checked" },
-          { text: "Create the VM and wait ~2 min, then visit the external IP" }
-        ],
-        tip: "Startup scripts run as root on first boot. <code>systemctl enable</code> makes Apache survive reboots. If the page doesn't load, check the firewall rule.",
-        cli: "<span class='prompt'>$</span> gcloud compute instances create web-server --tags=http-server --metadata startup-script=\"#! /bin/bash\\napt update\\napt install -y apache2\"\n<span class='prompt'>$</span> gcloud compute firewall-rules create allow-http --allow=tcp:80 --target-tags=http-server"
-      },
-      {
-        id: 6, title: "Instance Template + MIG + Autoscaling", category: "compute", tagLabel: "Compute", tagClass: "tag-compute",
-        goal: "Create a reusable instance template, a Managed Instance Group, and enable autoscaling.",
-        steps: [
-          { text: "Go to <code>Compute Engine → Instance Templates → Create</code>" },
-          { text: "Configure the template (machine type, boot disk, startup script etc.) and create it" },
-          { text: "Go to <code>Compute Engine → Instance Groups → Create</code>" },
-          { text: "Choose <code>New managed instance group (stateless)</code>" },
-          { text: "Select your template, choose region/zone" },
-          { text: "Under <code>Autoscaling</code>: set mode to <code>Autoscale</code>" },
-          { text: "Set target CPU utilization to <code>60%</code>" },
-          { text: "Set min and max instances and create" }
-        ],
-        tip: "Instance Template = blueprint. MIG = group of identical VMs using that blueprint. Autoscaling adds/removes VMs based on load.",
-        cli: "<span class='prompt'>$</span> gcloud compute instance-templates create web-template --machine-type=e2-micro\n<span class='prompt'>$</span> gcloud compute instance-groups managed create web-mig --template=web-template --size=2 --zone=us-central1-a\n<span class='prompt'>$</span> gcloud compute instance-groups managed set-autoscaling web-mig --max-num-replicas=5 --target-cpu-utilization=0.6"
-      },
-      {
-        id: 7, title: "IAM User (Storage Viewer)", category: "iam", tagLabel: "IAM", tagClass: "tag-iam",
-        goal: "Grant a user the Storage Object Viewer role at project or bucket level.",
-        steps: [
-          { text: "Go to <code>IAM & Admin → IAM</code>" },
-          { text: "Click <code>Grant Access</code>" },
-          { text: "Enter the user's email (e.g. <code>test-user@gmail.com</code>)" },
-          { text: "Select role: <code>Storage Object Viewer</code>" },
-          { text: "Click <code>Save</code>" },
-          { text: "<b>For bucket-level:</b> go to the bucket → <code>Permissions</code> tab → <code>Grant Access</code> (same steps)" }
-        ],
-        tip: "Project-level role = applies to ALL buckets. Bucket-level = applies to that one bucket only. Prefer bucket-level for least privilege.",
-        cli: "<span class='prompt'>$</span> gcloud projects add-iam-policy-binding my-project-id --member=user:test-user@gmail.com --role=roles/storage.objectViewer\n<span class='prompt'>$</span> gcloud storage buckets add-iam-policy-binding gs://my-bucket --member=user:test-user@gmail.com --role=roles/storage.objectViewer"
-      },
-      {
-        id: 8, title: "Service Account + Attach to VM", category: "iam", tagLabel: "IAM", tagClass: "tag-iam",
-        goal: "Create a service account with Compute Viewer role and attach it to a VM.",
-        steps: [
-          { text: "Go to <code>IAM & Admin → Service Accounts → Create Service Account</code>" },
-          { text: "Give it a name and description, click <code>Create and Continue</code>" },
-          { text: "Assign role: <code>Compute Viewer</code>" },
-          { text: "Click <code>Done</code>" },
-          { text: "Go to <code>Compute Engine → VM instances</code>" },
-          { text: "Edit the target VM → scroll to <code>Service Account</code>" },
-          { text: "Select your new service account, save" }
-        ],
-        tip: "Service accounts are identities for VMs/apps, not humans. They authenticate with Google APIs automatically without hardcoding credentials.",
-        cli: "<span class='prompt'>$</span> gcloud iam service-accounts create my-sa --display-name=\"My Service Account\"\n<span class='prompt'>$</span> gcloud projects add-iam-policy-binding my-project-id --member=\"serviceAccount:my-sa@my-project-id.iam.gserviceaccount.com\" --role=\"roles/compute.viewer\"\n<span class='prompt'>$</span> gcloud compute instances set-service-account my-vm --service-account=my-sa@my-project-id.iam.gserviceaccount.com"
-      },
-      {
-        id: 9, title: "Folder + IAM Role Inheritance", category: "iam", tagLabel: "IAM", tagClass: "tag-iam",
-        goal: "Create a resource folder and assign an IAM role that inherits to all projects inside it.",
-        steps: [
-          { text: "Go to <code>IAM & Admin → Manage Resources</code> (or use Resource Manager)" },
-          { text: "Select your Organization node, click <code>Create Folder</code>" },
-          { text: "Give the folder a name and create it" },
-          { text: "Select the folder, then go to <code>IAM</code>" },
-          { text: "Click <code>Grant Access</code>, enter email and select a role" },
-          { text: "Save — this role now applies to all projects inside the folder" }
-        ],
-        tip: "IAM is hierarchical: Org → Folder → Project → Resource. Roles assigned higher up inherit downward. Child resources can't override parent permissions.",
-        cli: "<span class='prompt'>$</span> gcloud resource-manager folders create --display-name=\"My Folder\" --organization=1234567890\n<span class='prompt'>$</span> gcloud resource-manager folders add-iam-policy-binding FOLDER_ID --member=user:test@gmail.com --role=roles/viewer"
-      },
-      {
-        id: 10, title: "HTTP Load Balancer + Cloud Armor", category: "lb", tagLabel: "Load Balancing", tagClass: "tag-lb",
-        goal: "Set up an HTTP(S) Load Balancer backed by a MIG, then attach a Cloud Armor security policy.",
-        steps: [
-          { text: "Go to <code>Network Services → Load Balancing → Create Load Balancer</code>" },
-          { text: "Choose <code>HTTP(S) Load Balancing</code> → Internet-facing" },
-          { text: "Configure <code>Backend service</code>: select your MIG as the backend" },
-          { text: "Configure <code>Frontend</code>: protocol HTTP, port 80" },
-          { text: "Review and create the load balancer" },
-          { text: "Go to <code>Security → Cloud Armor → Create Policy</code>" },
-          { text: "Add a rule: action <code>Deny</code> (or Allow), set IP match condition" },
-          { text: "Attach the policy to your backend service under the load balancer's backend settings" }
-        ],
-        tip: "Cloud Armor sits in front of the LB. Rules are matched top-to-bottom by priority (lower number = higher priority). Default action applies to unmatched traffic.",
-        cli: "<span class='prompt'>$</span> gcloud compute security-policies create block-ip-policy\n<span class='prompt'>$</span> gcloud compute security-policies rules create 1000 --security-policy block-ip-policy --src-ip-ranges=\"192.168.1.1/32\" --action=\"deny-403\"\n<span class='prompt'>$</span> gcloud compute backend-services update my-backend --security-policy block-ip-policy --global"
+        "text": "Merge & push main",
+        "code": "git checkout main\ngit merge feature/hello\ngit push origin main\ngit log --oneline --graph",
+        "lang": "bash"
       }
-    ];
+    ],
+    "tip": "On GitHub \u2192 go to your repo \u2192 click Compare & pull request \u2192 add a description \u2192 click Create pull request."
+  },
+  {
+    "id": 2,
+    "title": "Dockerise Flask + Hub",
+    "category": "docker",
+    "tagLabel": "Docker",
+    "tagClass": "tag-docker",
+    "goal": "Containerise a Flask application using Docker and deploy the image to Docker Hub.",
+    "steps": [
+      {
+        "text": "Create <code>app.py</code>",
+        "code": "from flask import Flask\napp = Flask(__name__)\n\n@app.route('/')\ndef home():\n    return \"Hello from Dockerised Flask!\"\n\nif __name__ == '__main__':\n    app.run(host='0.0.0.0', port=5000)",
+        "lang": "python"
+      },
+      {
+        "text": "Create <code>requirements.txt</code>",
+        "code": "flask",
+        "lang": "text"
+      },
+      {
+        "text": "Create <code>Dockerfile</code>",
+        "code": "FROM python:3.11-slim\nWORKDIR /app\nCOPY requirements.txt .\nRUN pip install -r requirements.txt\nCOPY . .\nEXPOSE 5000\nCMD [\"python\", \"app.py\"]",
+        "lang": "dockerfile"
+      },
+      {
+        "text": "Build, run & push to Docker Hub",
+        "code": "docker build -t <dockerhub-username>/flask-app:latest .\ndocker run -d -p 5000:5000 <dockerhub-username>/flask-app:latest\ndocker login\ndocker push <dockerhub-username>/flask-app:latest",
+        "lang": "bash"
+      }
+    ],
+    "tip": "Browser shows Hello from Dockerised Flask! \u2014 Image visible on Docker Hub under your repository."
+  },
+  {
+    "id": 3,
+    "title": "Monolithic App",
+    "category": "python",
+    "tagLabel": "Python",
+    "tagClass": "tag-python",
+    "goal": "Develop and demonstrate a simple monolithic application model using Python or Flask.",
+    "steps": [
+      {
+        "text": "Create <code>app.py</code> (Complete monolithic app)",
+        "code": "from flask import Flask, request, jsonify\n\napp = Flask(__name__)\nstudents = {}\nnext_id = 1\n\n@app.route('/students', methods=['GET'])\ndef get_students():\n    return jsonify(list(students.values()))\n\n@app.route('/students', methods=['POST'])\ndef add_student():\n    global next_id\n    data = request.get_json()\n    student = {'id': next_id, 'name': data['name'], 'roll': data['roll']}\n    students[next_id] = student\n    next_id += 1\n    return jsonify(student), 201\n\n@app.route('/students/<int:sid>', methods=['DELETE'])\ndef delete_student(sid):\n    students.pop(sid, None)\n    return jsonify({'msg': 'Deleted'})\n\nif __name__ == '__main__':\n    app.run(debug=True)",
+        "lang": "python"
+      },
+      {
+        "text": "Run & test with curl",
+        "code": "pip install flask\npython app.py\n\n# Add a student\ncurl -X POST http://localhost:5000/students \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"name\":\"Alice\",\"roll\":\"CS001\"}'\n\n# List all students\ncurl http://localhost:5000/students",
+        "lang": "bash"
+      }
+    ],
+    "tip": "A monolithic app bundles all features \u2014 UI, business logic, and data \u2014 into a single deployable unit. Below is a Student CRUD REST API in Flask."
+  },
+  {
+    "id": 4,
+    "title": "CI \u2013 GitHub Actions",
+    "category": "ci",
+    "tagLabel": "CI/CD",
+    "tagClass": "tag-ci",
+    "goal": "Create a CI pipeline using GitHub Actions to build and push a Docker image of a Python app to Docker Hub.",
+    "steps": [
+      {
+        "text": "Add secrets to GitHub repo: <code>DOCKER_USERNAME</code> and <code>DOCKER_PASSWORD</code>"
+      },
+      {
+        "text": "Create <code>.github/workflows/docker-publish.yml</code>",
+        "code": "name: Build and Push Docker Image\n\non:\n  push:\n    branches: [ main ]\n\njobs:\n  build-push:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Checkout code\n        uses: actions/checkout@v3\n\n      - name: Log in to Docker Hub\n        uses: docker/login-action@v3\n        with:\n          username: ${{ secrets.DOCKER_USERNAME }}\n          password: ${{ secrets.DOCKER_PASSWORD }}\n\n      - name: Build Docker image\n        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/python-app:latest .\n\n      - name: Push to Docker Hub\n        run: docker push ${{ secrets.DOCKER_USERNAME }}/python-app:latest",
+        "lang": "yaml"
+      }
+    ],
+    "tip": "Every push to main triggers a green workflow run in the Actions tab and the image appears on Docker Hub."
+  },
+  {
+    "id": 5,
+    "title": "Jenkins Pipeline",
+    "category": "jenkins",
+    "tagLabel": "Jenkins",
+    "tagClass": "tag-jenkins",
+    "goal": "Configure a Jenkins pipeline to automate the building and deployment of a Dockerized application from GitHub.",
+    "steps": [
+      {
+        "text": "Start Jenkins container",
+        "code": "docker volume create jenkins-data\ndocker run -d \\\n  --name jenkins \\\n  -p 8080:8080 -p 50000:50000 \\\n  -v jenkins-data:/var/jenkins_home \\\n  -v /var/run/docker.sock:/var/run/docker.sock \\\n  jenkins/jenkins:lts\n\n# Get initial password\ndocker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword",
+        "lang": "bash"
+      },
+      {
+        "text": "Install Docker CLI inside Jenkins container",
+        "code": "docker exec -u root jenkins bash -c \\\n  \"apt-get update && apt-get install -y docker.io\"",
+        "lang": "bash"
+      },
+      {
+        "text": "Create <code>Jenkinsfile</code> in root of GitHub repo",
+        "code": "pipeline {\n    agent any\n    environment {\n        IMAGE_NAME      = \"myapp\"\n        DOCKER_HUB_USER = \"<your-dockerhub-username>\"\n    }\n    stages {\n        stage('Clone') {\n            steps {\n                git branch: 'main',\n                    url: 'https://github.com/<username>/<repo>.git'\n            }\n        }\n        stage('Build Image') {\n            steps {\n                sh 'docker build -t $DOCKER_HUB_USER/$IMAGE_NAME:latest .'\n            }\n        }\n        stage('Push to Hub') {\n            steps {\n                withCredentials([usernamePassword(\n                    credentialsId: 'dockerhub-creds',\n                    usernameVariable: 'DOCKER_USER',\n                    passwordVariable: 'DOCKER_PASS'\n                )]) {\n                    sh '''\n                      echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin\n                      docker push $DOCKER_HUB_USER/$IMAGE_NAME:latest\n                    '''\n                }\n            }\n        }\n        stage('Deploy') {\n            steps {\n                sh 'docker run -d -p 5000:5000 $DOCKER_HUB_USER/$IMAGE_NAME:latest'\n            }\n        }\n    }\n}",
+        "lang": "groovy"
+      },
+      {
+        "text": "Jenkins pipeline setup: New Item \u2192 Pipeline \u2192 Pipeline script from SCM \u2192 Add Docker Hub credentials \u2192 Build Now"
+      }
+    ],
+    "tip": "Jenkins runs inside Docker \u2014 no Java installation needed on the host. The Docker socket is mounted so Jenkins can build and push images directly."
+  },
+  {
+    "id": 6,
+    "title": "kubectl Basics",
+    "category": "k8s",
+    "tagLabel": "Kubernetes",
+    "tagClass": "tag-k8s",
+    "goal": "Use kubectl commands to create, scale, and manage Kubernetes resources like pods and deployments.",
+    "steps": [
+      {
+        "text": "Create a deployment",
+        "code": "kubectl create deployment myapp --image=nginx:latest\nkubectl get deployments\nkubectl get pods",
+        "lang": "bash"
+      },
+      {
+        "text": "Scale the deployment",
+        "code": "# Scale up to 3 replicas\nkubectl scale deployment myapp --replicas=3\nkubectl get pods\n\n# Scale back down\nkubectl scale deployment myapp --replicas=1",
+        "lang": "bash"
+      },
+      {
+        "text": "Expose, inspect & clean up",
+        "code": "kubectl expose deployment myapp --port=80 --type=NodePort\nkubectl get services\nkubectl describe pod <pod-name>\nkubectl logs <pod-name>\n\n# Clean up\nkubectl delete deployment myapp\nkubectl delete service myapp",
+        "lang": "bash"
+      },
+      {
+        "text": "Using a YAML manifest (<code>deployment.yaml</code>)",
+        "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: myapp\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: myapp\n  template:\n    metadata:\n      labels:\n        app: myapp\n    spec:\n      containers:\n      - name: myapp\n        image: nginx:latest\n        ports:\n        - containerPort: 80",
+        "lang": "yaml"
+      },
+      {
+        "text": "Apply the manifest",
+        "code": "kubectl apply -f deployment.yaml\nkubectl get all",
+        "lang": "bash"
+      }
+    ],
+    "tip": "kubectl is the command line tool to interact with your Kubernetes cluster."
+  },
+  {
+    "id": 7,
+    "title": "Actions Auto Push",
+    "category": "ci",
+    "tagLabel": "CI/CD",
+    "tagClass": "tag-ci",
+    "goal": "Create a GitHub Actions pipeline to automatically build and push a Docker image of a Python app to Docker Hub.",
+    "steps": [
+      {
+        "text": "Create <code>.github/workflows/build-push.yml</code>",
+        "code": "name: Docker Build & Push\n\non:\n  push:\n    branches: [ main ]\n  pull_request:\n    branches: [ main ]\n\njobs:\n  docker:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v3\n\n      - name: Set up Docker Buildx\n        uses: docker/setup-buildx-action@v3\n\n      - name: Login to Docker Hub\n        uses: docker/login-action@v3\n        with:\n          username: ${{ secrets.DOCKER_USERNAME }}\n          password: ${{ secrets.DOCKER_PASSWORD }}\n\n      - name: Build and push\n        uses: docker/build-push-action@v5\n        with:\n          context: .\n          push: true\n          tags: ${{ secrets.DOCKER_USERNAME }}/python-app:latest",
+        "lang": "yaml"
+      }
+    ],
+    "tip": "Uses the official docker/build-push-action for best-practice multi-platform builds with Docker Buildx."
+  },
+  {
+    "id": 8,
+    "title": "Containerise Flask",
+    "category": "docker",
+    "tagLabel": "Docker",
+    "tagClass": "tag-docker",
+    "goal": "Containerise a Flask application using Docker.",
+    "steps": [
+      {
+        "text": "Create <code>app.py</code>",
+        "code": "from flask import Flask\napp = Flask(__name__)\n\n@app.route('/')\ndef index():\n    return \"<h1>Flask app running in Docker!</h1>\"\n\nif __name__ == '__main__':\n    app.run(host='0.0.0.0', port=5000)",
+        "lang": "python"
+      },
+      {
+        "text": "Create <code>Dockerfile</code>",
+        "code": "FROM python:3.11-slim\nWORKDIR /app\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\nCOPY . .\nEXPOSE 5000\nCMD [\"python\", \"app.py\"]",
+        "lang": "dockerfile"
+      },
+      {
+        "text": "Build & run",
+        "code": "docker build -t flask-container .\ndocker run -d -p 5000:5000 --name myflask flask-container\ndocker ps\n# Visit http://localhost:5000",
+        "lang": "bash"
+      }
+    ],
+    "tip": "This question focuses only on containerisation \u2014 no push to Docker Hub required (that's Q2)."
+  },
+  {
+    "id": 9,
+    "title": "Clone Modify Push",
+    "category": "git",
+    "tagLabel": "Git",
+    "tagClass": "tag-git",
+    "goal": "Clone a GitHub repository, modify a file and push the changes back to the repository.",
+    "steps": [
+      {
+        "text": "Clone repository",
+        "code": "git clone https://github.com/<username>/<repo-name>.git\ncd <repo-name>",
+        "lang": "bash"
+      },
+      {
+        "text": "Modify a file",
+        "code": "echo \"Updated content\" >> README.md\ncat README.md\ngit diff",
+        "lang": "bash"
+      },
+      {
+        "text": "Commit & push",
+        "code": "git add README.md\ngit commit -m \"docs: update README with new content\"\ngit push origin main\ngit log --oneline -3",
+        "lang": "bash"
+      }
+    ],
+    "tip": "Make sure you have access to the repository and have authenticated Git."
+  },
+  {
+    "id": 10,
+    "title": "Actions Build & Test",
+    "category": "ci",
+    "tagLabel": "CI/CD",
+    "tagClass": "tag-ci",
+    "goal": "Configure a GitHub Actions workflow to automatically build and test a Python application.",
+    "steps": [
+      {
+        "text": "Create <code>app.py</code>",
+        "code": "def add(a, b):\n    return a + b\n\ndef greet(name):\n    return f\"Hello, {name}!\"",
+        "lang": "python"
+      },
+      {
+        "text": "Create <code>test_app.py</code>",
+        "code": "from app import add, greet\n\ndef test_add():\n    assert add(2, 3) == 5\n\ndef test_greet():\n    assert greet(\"World\") == \"Hello, World!\"",
+        "lang": "python"
+      },
+      {
+        "text": "Create <code>requirements.txt</code>",
+        "code": "pytest",
+        "lang": "text"
+      },
+      {
+        "text": "Create <code>.github/workflows/python-test.yml</code>",
+        "code": "name: Python Build & Test\n\non:\n  push:\n    branches: [ main ]\n  pull_request:\n    branches: [ main ]\n\njobs:\n  build-test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v3\n\n      - name: Set up Python\n        uses: actions/setup-python@v4\n        with:\n          python-version: '3.11'\n\n      - name: Install dependencies\n        run: pip install -r requirements.txt\n\n      - name: Run tests\n        run: pytest test_app.py -v",
+        "lang": "yaml"
+      }
+    ],
+    "tip": "GitHub Actions shows 2 passed with green checkmarks. Every push to main automatically runs the tests."
+  }
+];
 
-    let done = JSON.parse(localStorage.getItem('gcp_done_pro') || '[]');
-    let notes = JSON.parse(localStorage.getItem('gcp_notes_pro') || '{}');
+    let done = JSON.parse(localStorage.getItem('devops_done_pro') || '[]');
+    let notes = JSON.parse(localStorage.getItem('devops_notes_pro') || '{}');
     let currentExp = null;
     let currentFilter = 'all';
     let searchQuery = '';
@@ -1174,7 +1314,7 @@
       const html = document.documentElement;
 
       // Load preference
-      const savedTheme = localStorage.getItem('gcp_theme') || 'dark';
+      const savedTheme = localStorage.getItem('devops_theme') || 'dark';
       html.setAttribute('data-theme', savedTheme);
       updateThemeBtn(savedTheme);
 
@@ -1182,7 +1322,7 @@
         const current = html.getAttribute('data-theme');
         const next = current === 'dark' ? 'light' : 'dark';
         html.setAttribute('data-theme', next);
-        localStorage.setItem('gcp_theme', next);
+        localStorage.setItem('devops_theme', next);
         updateThemeBtn(next);
       });
     }
@@ -1263,15 +1403,25 @@
       document.getElementById('detail-title').innerText = currentExp.title;
       document.getElementById('detail-goal').innerText = currentExp.goal;
 
-      const stepsHtml = currentExp.steps.map((s, i) => `
-        <li class="step-item">
-          <div class="step-number">${i + 1}</div>
-          <div class="step-text">${s.text}</div>
+      const stepsHtml = currentExp.steps.map((s, i) => {
+        let codeBlock = '';
+        if (s.code) {
+          // Escape HTML tags in code so they don't break rendering
+          let safeCode = s.code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          codeBlock = `<div class="code-block-container"><span class="code-lang-label">${s.lang}</span>${safeCode}</div>`;
+        }
+        return `
+        <li class="step-item" style="flex-direction: column;">
+          <div style="display: flex; gap: 15px; align-items: flex-start; width: 100%;">
+            <div class="step-number">${i + 1}</div>
+            <div class="step-text" style="width: 100%;">${s.text}${codeBlock}</div>
+          </div>
         </li>
-      `).join('');
+      `;
+      }).join('');
       document.getElementById('detail-steps').innerHTML = stepsHtml;
       document.getElementById('detail-tip').innerHTML = currentExp.tip;
-      document.getElementById('detail-cli').innerHTML = currentExp.cli || '<span class="prompt">$</span> echo "No CLI commands available"';
+      
 
       // Update Done Button
       updateDoneBtnUI();
@@ -1296,7 +1446,7 @@
         fireConfetti();
       }
 
-      localStorage.setItem('gcp_done_pro', JSON.stringify(done));
+      localStorage.setItem('devops_done_pro', JSON.stringify(done));
       updateProgress();
       renderSidebar();
       updateDoneBtnUI();
@@ -1330,7 +1480,7 @@
       if (!currentExp) return;
       const text = document.getElementById('notes-area').value;
       notes[currentExp.id] = text;
-      localStorage.setItem('gcp_notes_pro', JSON.stringify(notes));
+      localStorage.setItem('devops_notes_pro', JSON.stringify(notes));
     }
 
     // Timer functions
@@ -1446,7 +1596,7 @@
 
       ctx.fillStyle = '#4285f4';
       ctx.font = 'bold 24px Arial';
-      ctx.fillText('GCP Lab Revision Pro', canvas.width / 2, 390);
+      ctx.fillText('DevOps Lab Revision Pro', canvas.width / 2, 390);
 
       // Date
       const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -1470,7 +1620,7 @@
 
       // Download
       const link = document.createElement('a');
-      link.download = 'GCP_Certificate_' + name.replace(/\s+/g, '_') + '.png';
+      link.download = 'DevOps_Certificate_' + name.replace(/\s+/g, '_') + '.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
 

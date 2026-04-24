@@ -943,9 +943,14 @@
             <h2 id="detail-title">Experiment Title</h2>
             <p class="exp-goal" id="detail-goal">Experiment goal goes here.</p>
           </div>
-          <button class="mark-done-btn" id="mark-done-btn" onclick="toggleCurrentDone()">
-            <i class="fa-solid fa-check"></i> <span>Mark as Done</span>
-          </button>
+          <div style="display: flex; gap: 10px; flex-direction: column; align-items: flex-end;">
+            <button class="btn-primary" onclick="openEditorModal()" style="width: auto; padding: 10px 20px;">
+              <i class="fa-solid fa-code"></i> <span>Open VS Code</span>
+            </button>
+            <button class="mark-done-btn" id="mark-done-btn" onclick="toggleCurrentDone()">
+              <i class="fa-solid fa-check"></i> <span>Mark as Done</span>
+            </button>
+          </div>
         </div>
 
         <div class="grid-layout">
@@ -1013,6 +1018,17 @@
       <button class="btn-primary" onclick="generateCertificate()">
         <i class="fa-solid fa-download"></i> Download Certificate
       </button>
+    </div>
+  </div>
+
+  <!-- VS Code Editor Modal -->
+  <div class="modal-overlay" id="editor-modal">
+    <div class="modal-content" style="max-width: 900px; width: 95%; height: 80vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-code"></i> VS Code Environment</h3>
+        <button class="close-modal" onclick="closeEditorModal()"><i class="fa-solid fa-times"></i></button>
+      </div>
+      <div id="monaco-editor" style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px;"></div>
     </div>
   </div>
 
@@ -1324,6 +1340,9 @@
         html.setAttribute('data-theme', next);
         localStorage.setItem('devops_theme', next);
         updateThemeBtn(next);
+        if (window.monacoEditor) {
+          monaco.editor.setTheme(next === 'dark' ? 'vs-dark' : 'vs');
+        }
       });
     }
 
@@ -1599,38 +1618,87 @@
       ctx.fillText('DevOps Lab Revision Pro', canvas.width / 2, 390);
 
       // Date
-      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
       ctx.fillStyle = '#1e293b';
-      ctx.font = '18px Arial';
-      ctx.fillText('Awarded on: ' + today, canvas.width / 2, 450);
+      ctx.font = '16px Arial';
+      const date = new Date().toLocaleDateString('en-GB');
+      ctx.fillText(`Date: ${date}`, canvas.width / 2, 450);
 
-      // Seal / Badge
+      // Signature line
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(canvas.width / 2, 530, 40, 0, 2 * Math.PI);
-      ctx.fillStyle = '#fbbc05';
-      ctx.fill();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = '#ea4335';
+      ctx.moveTo(canvas.width / 2 - 100, 520);
+      ctx.lineTo(canvas.width / 2 + 100, 520);
       ctx.stroke();
 
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 16px Arial';
-      ctx.fillText('GCP', canvas.width / 2, 525);
-      ctx.fillText('PRO', canvas.width / 2, 545);
+      ctx.fillStyle = '#64748b';
+      ctx.font = '14px Arial';
+      ctx.fillText('Authorized Signature', canvas.width / 2, 540);
 
       // Download
       const link = document.createElement('a');
-      link.download = 'DevOps_Certificate_' + name.replace(/\s+/g, '_') + '.png';
+      link.download = `DevOps_Certificate_${name.replace(/\s+/g, '_')}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
 
       closeCertModal();
-      fireConfetti();
     }
 
-    // Start App
-    init();
+    function openEditorModal() {
+      document.getElementById('editor-modal').classList.add('active');
+      // Trigger resize to fix Monaco rendering issues inside newly displayed modal
+      setTimeout(() => {
+        if (window.monacoEditor) {
+          window.monacoEditor.layout();
+        }
+      }, 50);
+    }
+
+    function closeEditorModal() {
+      document.getElementById('editor-modal').classList.remove('active');
+    }
+
+    window.onload = init;
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs/loader.min.js"></script>
+  <script>
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+      window.monacoEditor = monaco.editor.create(document.getElementById('monaco-editor'), {
+        value: '# Practice your code and commands here...\n',
+        language: 'shell',
+        theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'vs-dark' : 'vs',
+        automaticLayout: true,
+        minimap: { enabled: false }
+      });
+
+      const editorContainer = document.getElementById('monaco-editor');
+      
+      // Prevent copy/paste shortcuts
+      editorContainer.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'v' || e.key === 'C' || e.key === 'V')) {
+          e.preventDefault();
+          e.stopPropagation();
+          alert("Copy/Paste is disabled. Please type it out manually to learn better!");
+        }
+      }, true);
+
+      // Prevent right click (which allows paste context menu)
+      editorContainer.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+      }, true);
+      
+      // Prevent native copy/paste events
+      editorContainer.addEventListener('copy', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }, true);
+      editorContainer.addEventListener('paste', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }, true);
+    });
   </script>
 </body>
-
 </html>

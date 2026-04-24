@@ -1665,10 +1665,41 @@
       ctx.font = '18px Arial, sans-serif';
       ctx.fillText('Date Awarded: ' + today, 180, 500);
 
-      // Right Column - Signature
-      ctx.fillStyle = '#0f172a';
-      ctx.font = '36px "Snell Roundhand", "Brush Script MT", "Great Vibes", cursive';
-      ctx.fillText('Albert Livingston', canvas.width - 180, 485);
+      // Right Column - Signature (Custom drawn path matching provided image)
+      ctx.save();
+      ctx.strokeStyle = '#0f172a'; // Dark ink color
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      
+      const sigX = canvas.width - 250;
+      const sigY = 485;
+      
+      // Large starting loop
+      ctx.moveTo(sigX, sigY);
+      ctx.quadraticCurveTo(sigX + 50, sigY - 70, sigX + 120, sigY - 80); // Sweeping up-right
+      ctx.lineTo(sigX + 15, sigY + 5); // Sharp down-left
+      ctx.quadraticCurveTo(sigX - 15, sigY + 15, sigX + 5, sigY - 5); // Bottom loop
+      ctx.lineTo(sigX + 50, sigY - 25); // Cross over
+      
+      // Middle loop & P-shape
+      ctx.moveTo(sigX + 45, sigY - 10);
+      ctx.quadraticCurveTo(sigX + 70, sigY - 60, sigX + 75, sigY - 60); // Tall up
+      ctx.lineTo(sigX + 50, sigY + 10); // Straight down
+      ctx.quadraticCurveTo(sigX + 45, sigY - 30, sigX + 75, sigY - 20); // Loop right
+      ctx.quadraticCurveTo(sigX + 80, sigY - 5, sigX + 55, sigY + 2); // Loop down
+      
+      // Squiggles
+      ctx.lineTo(sigX + 65, sigY - 15);
+      ctx.lineTo(sigX + 70, sigY + 2);
+      ctx.lineTo(sigX + 85, sigY - 10);
+      ctx.lineTo(sigX + 90, sigY + 5);
+      
+      // Long trailing line
+      ctx.quadraticCurveTo(sigX + 120, sigY - 5, sigX + 190, sigY - 15);
+      ctx.stroke();
+      ctx.restore();
 
       ctx.strokeStyle = '#94a3b8';
       ctx.lineWidth = 1;

@@ -25,21 +25,27 @@ export default function AdminDashboard() {
     setTimeout(() => setShowToast(''), 3000);
   };
 
-  const handleApprove = (id) => {
+  const handleApprove = async (id) => {
     const noteToApprove = pendingNotes.find(n => n.id === id);
     if (noteToApprove) {
-      const currentApproved = JSON.parse(localStorage.getItem('approvedNotes') || '[]');
-      const newApproved = [{
-        id: noteToApprove.id,
-        subject: noteToApprove.subject,
-        title: noteToApprove.title,
-        content: noteToApprove.snippet + '\n\nFull approved content would appear here.',
-        author: noteToApprove.author,
-        file: 'attached_document.pdf', // Mock file attachment
-        likes: 0,
-        comments: []
-      }, ...currentApproved];
-      localStorage.setItem('approvedNotes', JSON.stringify(newApproved));
+      try {
+        const { default: localforage } = await import('localforage');
+        const currentApproved = await localforage.getItem('approvedNotes') || [];
+        const newApproved = [{
+          id: noteToApprove.id,
+          subject: noteToApprove.subject,
+          title: noteToApprove.title,
+          content: noteToApprove.snippet + '\n\nFull approved content would appear here.',
+          author: noteToApprove.author,
+          fileName: 'attached_document.pdf', // Mock file attachment
+          fileData: null,
+          likes: 0,
+          comments: []
+        }, ...currentApproved];
+        await localforage.setItem('approvedNotes', newApproved);
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     setPendingNotes(prev => prev.filter(n => n.id !== id));

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, ThumbsUp, Send, User, Upload, FileText } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Send, User, Upload, FileText, CheckCircle } from 'lucide-react';
+import localforage from 'localforage';
+import { subjects } from '../data/mockData';
 
 export default function TrendsPage() {
   const [approvedNotes, setApprovedNotes] = useState([]);
@@ -7,28 +9,42 @@ export default function TrendsPage() {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyForm, setVerifyForm] = useState({ name: '', email: '' });
   const [chatInputs, setChatInputs] = useState({});
+  const [showToast, setShowToast] = useState('');
+  
+  // New Post Form State
+  const [newPost, setNewPost] = useState({ title: '', content: '', subject: 'General', file: null, fileName: '' });
 
   useEffect(() => {
-    // Load from local storage to mock a backend
-    const savedNotes = JSON.parse(localStorage.getItem('approvedNotes') || '[]');
-    const savedProfile = JSON.parse(localStorage.getItem('studyHubProfile') || 'null');
-    
-    // Add some mock approved notes if empty
-    if (savedNotes.length === 0) {
-      const mockNotes = [
-        { id: 101, subject: 'Machine Learning', title: 'Great Cheatsheet for Neural Networks', content: 'I compiled all the formulas for backpropagation. Hope it helps!', author: 'AI_Student', likes: 24, comments: [{ author: 'DataNerd', text: 'This is amazing, thanks!' }] },
-        { id: 102, subject: 'System Software', title: 'Pass 1 vs Pass 2 Assembler', content: 'Detailed diagram explaining the differences.', author: 'CompilerGeek', file: 'Assembler_Diagram.pdf', likes: 15, comments: [] }
-      ];
-      setApprovedNotes(mockNotes);
-      localStorage.setItem('approvedNotes', JSON.stringify(mockNotes));
-    } else {
-      setApprovedNotes(savedNotes);
-    }
-    
-    if (savedProfile) {
-      setUserProfile(savedProfile);
-    }
+    const loadData = async () => {
+      try {
+        const savedNotes = await localforage.getItem('approvedNotes');
+        const savedProfile = JSON.parse(localStorage.getItem('studyHubProfile') || 'null');
+        
+        if (!savedNotes || savedNotes.length === 0) {
+          const mockNotes = [
+            { id: 101, subject: 'Machine Learning', title: 'Great Cheatsheet for Neural Networks', content: 'I compiled all the formulas for backpropagation. Hope it helps!', author: 'AI_Student', likes: 24, comments: [{ author: 'DataNerd', text: 'This is amazing, thanks!' }] },
+            { id: 102, subject: 'System Software', title: 'Pass 1 vs Pass 2 Assembler', content: 'Detailed diagram explaining the differences.', author: 'CompilerGeek', fileName: 'Assembler_Diagram.pdf', likes: 15, comments: [] }
+          ];
+          setApprovedNotes(mockNotes);
+          await localforage.setItem('approvedNotes', mockNotes);
+        } else {
+          setApprovedNotes(savedNotes);
+        }
+        
+        if (savedProfile) {
+          setUserProfile(savedProfile);
+        }
+      } catch (err) {
+        console.error("Error loading data", err);
+      }
+    };
+    loadData();
   }, []);
+
+  const triggerToast = (msg) => {
+    setShowToast(msg);
+    setTimeout(() => setShowToast(''), 3000);
+  };
 
   const handleVerifySubmit = (e) => {
     e.preventDefault();
@@ -38,9 +54,49 @@ export default function TrendsPage() {
     setUserProfile(profile);
     localStorage.setItem('studyHubProfile', JSON.stringify(profile));
     setShowVerifyModal(false);
+    triggerToast('Successfully verified!');
   };
 
-  const handleChatSubmit = (e, noteId) => {
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewPost({ ...newPost, file: reader.result, fileName: file.name });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePostSubmit = async (e) => {
+    e.preventDefault();
+    if (!userProfile) {
+      setShowVerifyModal(true);
+      return;
+    }
+    if (!newPost.title || !newPost.content) return;
+
+    const post = {
+      id: Date.now(),
+      subject: newPost.subject,
+      title: newPost.title,
+      content: newPost.content,
+      author: userProfile.name,
+      fileName: newPost.fileName,
+      fileData: newPost.file,
+      likes: 0,
+      comments: []
+    };
+
+    const updatedNotes = [post, ...approvedNotes];
+    setApprovedNotes(updatedNotes);
+    await localforage.setItem('approvedNotes', updatedNotes);
+    
+    setNewPost({ title: '', content: '', subject: 'General', file: null, fileName: '' });
+    triggerToast('Note successfully posted!');
+  };
+
+  const handleChatSubmit = async (e, noteId) => {
     e.preventDefault();
     if (!userProfile) {
       setShowVerifyModal(true);
@@ -61,11 +117,11 @@ export default function TrendsPage() {
     });
 
     setApprovedNotes(newNotes);
-    localStorage.setItem('approvedNotes', JSON.stringify(newNotes));
+    await localforage.setItem('approvedNotes', newNotes);
     setChatInputs({ ...chatInputs, [noteId]: '' });
   };
 
-  const handleLike = (noteId) => {
+  const handleLike = async (noteId) => {
     const newNotes = approvedNotes.map(note => {
       if (note.id === noteId) {
         return { ...note, likes: (note.likes || 0) + 1 };
@@ -73,19 +129,39 @@ export default function TrendsPage() {
       return note;
     });
     setApprovedNotes(newNotes);
-    localStorage.setItem('approvedNotes', JSON.stringify(newNotes));
+    await localforage.setItem('approvedNotes', newNotes);
+  };
+
+  const handleDownload = (fileData, fileName) => {
+    if (!fileData) {
+      triggerToast('No file data available.');
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = fileData;
+    link.download = fileName || 'download';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 relative">
       
+      {showToast && (
+        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-in slide-in-from-bottom-5">
+          <CheckCircle className="w-5 h-5" />
+          <span className="font-medium">{showToast}</span>
+        </div>
+      )}
+
       {/* Verification Modal */}
       {showVerifyModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-2">Join the Discussion</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Please verify your identity to chat with the community.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Please verify your identity to chat and upload notes.</p>
               
               <form onSubmit={handleVerifySubmit} className="space-y-4">
                 <div>
@@ -122,9 +198,57 @@ export default function TrendsPage() {
 
       <div>
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Community Trends</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">Discover and discuss approved notes and files shared by your peers.</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-2">Discover, discuss, and share study notes and files with your peers.</p>
       </div>
 
+      {/* New Post Form */}
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <h2 className="text-lg font-bold mb-4">Share a Note or File</h2>
+        <form onSubmit={handlePostSubmit} className="space-y-4">
+          <div className="flex gap-4">
+            <input 
+              type="text" 
+              placeholder="Note Title..."
+              value={newPost.title}
+              onChange={(e) => setNewPost({...newPost, title: e.target.value})}
+              className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+            <select 
+              value={newPost.subject}
+              onChange={(e) => setNewPost({...newPost, subject: e.target.value})}
+              className="w-48 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="General">General</option>
+              {subjects.map(s => <option key={s.id} value={s.title}>{s.title}</option>)}
+            </select>
+          </div>
+          <textarea 
+            placeholder="What's on your mind? Add notes here..."
+            value={newPost.content}
+            onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+            rows="3"
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+          ></textarea>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30 px-3 py-2 rounded-lg transition-colors font-medium">
+                <Upload className="w-5 h-5" />
+                <span>{newPost.fileName ? newPost.fileName : "Attach PPT, PDF, Image..."}</span>
+                <input type="file" onChange={handleFileChange} className="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg" />
+              </label>
+            </div>
+            <button 
+              type="submit" 
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"
+            >
+              <Send className="w-4 h-4" /> Post Note
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Feed */}
       <div className="space-y-8">
         {approvedNotes.length === 0 ? (
           <div className="p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl text-slate-500">
@@ -136,31 +260,37 @@ export default function TrendsPage() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-lg">
                       {note.author.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-semibold">{note.author}</div>
+                      <div className="font-semibold text-slate-900 dark:text-white">{note.author}</div>
                       <div className="text-xs text-slate-500 flex items-center gap-2">
-                        <span className="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-slate-600 dark:text-slate-300">{note.subject}</span>
-                        <span>• Just now</span>
+                        <span className="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-slate-600 dark:text-slate-300 font-medium">{note.subject}</span>
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                <h3 className="text-xl font-bold mb-2">{note.title}</h3>
+                <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">{note.title}</h3>
                 <p className="text-slate-600 dark:text-slate-300 mb-4 whitespace-pre-wrap">{note.content}</p>
                 
-                {note.file && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 w-max mb-4">
-                    <FileText className="w-6 h-6 text-indigo-500" />
-                    <div>
-                      <div className="text-sm font-medium">{note.file}</div>
-                      <div className="text-xs text-slate-500">Attachment</div>
+                {note.fileName && (
+                  <div className="flex items-center justify-between p-4 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/30 mb-4 group hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-indigo-100 dark:bg-indigo-800/50 rounded-lg text-indigo-600 dark:text-indigo-400">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">{note.fileName}</div>
+                        <div className="text-xs text-slate-500">Document Attachment</div>
+                      </div>
                     </div>
-                    <button className="ml-4 text-xs font-medium bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                      View
+                    <button 
+                      onClick={() => handleDownload(note.fileData || note.file, note.fileName)}
+                      className="text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow transition-all"
+                    >
+                      Download
                     </button>
                   </div>
                 )}

@@ -26,6 +26,22 @@ export default function AdminDashboard() {
   };
 
   const handleApprove = (id) => {
+    const noteToApprove = pendingNotes.find(n => n.id === id);
+    if (noteToApprove) {
+      const currentApproved = JSON.parse(localStorage.getItem('approvedNotes') || '[]');
+      const newApproved = [{
+        id: noteToApprove.id,
+        subject: noteToApprove.subject,
+        title: noteToApprove.title,
+        content: noteToApprove.snippet + '\n\nFull approved content would appear here.',
+        author: noteToApprove.author,
+        file: 'attached_document.pdf', // Mock file attachment
+        likes: 0,
+        comments: []
+      }, ...currentApproved];
+      localStorage.setItem('approvedNotes', JSON.stringify(newApproved));
+    }
+
     setPendingNotes(prev => prev.filter(n => n.id !== id));
     setStats(prev => {
       const newStats = [...prev];
@@ -33,7 +49,7 @@ export default function AdminDashboard() {
       newStats[2].value += 1; // Approved up
       return newStats;
     });
-    triggerToast('Note successfully approved and published!');
+    triggerToast('Note successfully approved and published to Trends!');
   };
 
   const handleReject = (id) => {

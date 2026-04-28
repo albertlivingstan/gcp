@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, PenTool, HelpCircle, Users, Download, Bookmark, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, PenTool, HelpCircle, Users, Download, Bookmark, CheckCircle2, Upload } from 'lucide-react';
 import { subjects, mockPPTs, mockBigQuestions } from '../data/mockData';
 import ChatBox from '../components/ChatBox';
 
@@ -186,14 +186,21 @@ export default function SubjectPage() {
                       onChange={(e) => setPublicNoteContent(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
                     ></textarea>
-                    <div className="flex justify-end">
-                      <button 
-                        type="submit" 
-                        disabled={!publicNoteTitle || !publicNoteContent}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-                      >
-                        Submit for Approval
-                      </button>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                        <Upload className="w-4 h-4" />
+                        <span>Attach File (Image, PDF, PPT)</span>
+                        <input type="file" className="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg" />
+                      </label>
+                      <div className="flex-1 flex justify-end">
+                        <button 
+                          type="submit" 
+                          disabled={!publicNoteTitle || !publicNoteContent}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+                        >
+                          Submit for Approval
+                        </button>
+                      </div>
                     </div>
                   </form>
                 </div>

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { BookOpen, Search, User, Sun, Moon } from 'lucide-react';
 import Home from './pages/Home';
 import SubjectPage from './pages/SubjectPage';
+import TrendsPage from './pages/TrendsPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 
@@ -32,6 +33,9 @@ function App() {
                 </Link>
               </div>
               <div className="flex items-center gap-4">
+                <Link to="/trends" className="text-sm font-medium hover:text-indigo-600 transition-colors hidden md:block">
+                  Trending
+                </Link>
                 <div className="relative hidden md:block group">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                   <input 
@@ -60,6 +64,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/subject/:id" element={<SubjectPage />} />
+            <Route path="/trends" element={<TrendsPage />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
           </Routes>

@@ -56,7 +56,7 @@ export default function Home() {
       <section className="mt-16">
         <h2 className="text-3xl font-bold mb-6 text-slate-900 dark:text-white text-center">Interactive Virtual Labs</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          <a href="/devops_lab.html" className="group relative block bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden border-l-4 border-l-blue-500">
+          <a href="/24CS2019_DevOps_Lab.html" className="group relative block bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden border-l-4 border-l-blue-500">
             <div className="flex items-center gap-4 mb-4">
               <div className="p-3 rounded-xl text-white bg-blue-500 shadow-lg">
                 <Network className="w-6 h-6" />
@@ -68,7 +68,7 @@ export default function Home() {
             </p>
           </a>
           
-          <a href="/gcp_lab.html" className="group relative block bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden border-l-4 border-l-green-500">
+          <a href="/gcp_lab_revision_site.html" className="group relative block bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden border-l-4 border-l-green-500">
             <div className="flex items-center gap-4 mb-4">
               <div className="p-3 rounded-xl text-white bg-green-500 shadow-lg">
                 <InfinityIcon className="w-6 h-6" />

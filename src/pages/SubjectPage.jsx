@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, PenTool, HelpCircle, Users, Download, Bookmark, CheckCircle2, Upload } from 'lucide-react';
+import { ArrowLeft, BookOpen, PenTool, HelpCircle, Users, Download, Bookmark, CheckCircle2, Upload, FileText } from 'lucide-react';
+import localforage from 'localforage';
 import { subjects, mockPPTs, mockBigQuestions } from '../data/mockData';
 import ChatBox from '../components/ChatBox';
 
 export default function SubjectPage() {
   const { id } = useParams();
   const subject = subjects.find(s => s.id === id);
-  const ppts = mockPPTs[id] || [];
+  const basePpts = mockPPTs[id] || [];
   const bigQuestions = mockBigQuestions[id] || [];
   
   const [activeTab, setActiveTab] = useState('ppt');
@@ -16,6 +17,34 @@ export default function SubjectPage() {
   const [publicNoteContent, setPublicNoteContent] = useState('');
   const [submittedNotes, setSubmittedNotes] = useState([]);
   const [doneQuestions, setDoneQuestions] = useState(new Set());
+  const [ppts, setPpts] = useState(basePpts);
+
+  useEffect(() => {
+    const loadCustomPPTs = async () => {
+      try {
+        const savedPPTs = await localforage.getItem('adminPPTs');
+        if (savedPPTs) {
+          const subjectPpts = savedPPTs.filter(ppt => ppt.subjectId === id);
+          if (subjectPpts.length > 0) {
+            setPpts([...subjectPpts, ...basePpts]);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading custom PPTs', err);
+      }
+    };
+    loadCustomPPTs();
+  }, [id]);
+
+  const handleDownload = (fileData, fileName) => {
+    if (!fileData) return;
+    const link = document.createElement('a');
+    link.href = fileData;
+    link.download = fileName || 'download';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (!subject) {
     return <div className="text-center py-20 text-2xl">Subject not found.</div>;
@@ -94,19 +123,39 @@ export default function SubjectPage() {
                   <h2 className="text-lg font-bold">Study Materials</h2>
                 </div>
                 {ppts.length > 0 ? ppts.map(ppt => (
-                  <div key={ppt.id} className="flex-1 flex flex-col border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-                    <div className="bg-slate-50 dark:bg-slate-900 px-4 py-2 flex justify-between items-center border-b border-slate-200 dark:border-slate-700">
-                      <span className="font-medium">{ppt.title}</span>
-                      <button className="text-slate-500 hover:text-indigo-600 flex items-center gap-1 text-sm">
+                  <div key={ppt.id} className="flex-1 flex flex-col border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden mb-6">
+                    <div className="bg-slate-50 dark:bg-slate-900 px-4 py-3 flex justify-between items-center border-b border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-indigo-500" />
+                        <span className="font-medium text-slate-800 dark:text-slate-200">{ppt.title || ppt.fileName}</span>
+                      </div>
+                      <button 
+                        onClick={() => ppt.fileData ? handleDownload(ppt.fileData, ppt.fileName) : window.open(ppt.url)}
+                        className="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg flex items-center gap-1 text-sm font-medium transition-colors"
+                      >
                         <Download className="w-4 h-4" /> Download
                       </button>
                     </div>
-                    <iframe 
-                      src={ppt.url} 
-                      className="w-full flex-1 min-h-[500px] bg-slate-100" 
-                      frameBorder="0"
-                      allowFullScreen="true"
-                    ></iframe>
+                    {ppt.url ? (
+                      <iframe 
+                        src={ppt.url} 
+                        className="w-full flex-1 min-h-[500px] bg-slate-100" 
+                        frameBorder="0"
+                        allowFullScreen={true}
+                      ></iframe>
+                    ) : (
+                      <div className="flex-1 min-h-[300px] bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center text-slate-500">
+                        <FileText className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
+                        <p className="text-lg font-medium text-slate-600 dark:text-slate-400">Custom Document Uploaded</p>
+                        <p className="text-sm mt-1 mb-4">Please download to view this file locally.</p>
+                        <button 
+                          onClick={() => handleDownload(ppt.fileData, ppt.fileName)}
+                          className="text-indigo-600 hover:underline font-medium flex items-center gap-1"
+                        >
+                          Download {ppt.fileName}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )) : (
                   <div className="flex-1 flex items-center justify-center text-slate-500">No PPTs available yet.</div>

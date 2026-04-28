@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { MessageSquare, ThumbsUp, Send, User, Upload, FileText, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MessageSquare, ThumbsUp, Send, User, Upload, FileText, CheckCircle, Trash2, Mic, Square } from 'lucide-react';
 import localforage from 'localforage';
 import { subjects } from '../data/mockData';
 
@@ -10,6 +10,11 @@ export default function TrendsPage() {
   const [verifyForm, setVerifyForm] = useState({ name: '', email: '' });
   const [chatInputs, setChatInputs] = useState({});
   const [showToast, setShowToast] = useState('');
+  
+  // Audio Recording State
+  const [isRecording, setIsRecording] = useState({});
+  const mediaRecorderRef = useRef({});
+  const audioChunksRef = useRef({});
   
   // New Post Form State
   const [newPost, setNewPost] = useState({ title: '', content: '', subject: 'General', file: null, fileName: '' });
@@ -22,7 +27,7 @@ export default function TrendsPage() {
         
         if (!savedNotes || savedNotes.length === 0) {
           const mockNotes = [
-            { id: 101, subject: 'Machine Learning', title: 'Great Cheatsheet for Neural Networks', content: 'I compiled all the formulas for backpropagation. Hope it helps!', author: 'AI_Student', likes: 24, comments: [{ author: 'DataNerd', text: 'This is amazing, thanks!' }] },
+            { id: 101, subject: 'Machine Learning', title: 'Great Cheatsheet for Neural Networks', content: 'I compiled all the formulas for backpropagation. Hope it helps!', author: 'AI_Student', likes: 24, comments: [{ id: 1, author: 'DataNerd', text: 'This is amazing, thanks!' }] },
             { id: 102, subject: 'System Software', title: 'Pass 1 vs Pass 2 Assembler', content: 'Detailed diagram explaining the differences.', author: 'CompilerGeek', fileName: 'Assembler_Diagram.pdf', likes: 15, comments: [] }
           ];
           setApprovedNotes(mockNotes);
@@ -96,21 +101,26 @@ export default function TrendsPage() {
     triggerToast('Note successfully posted!');
   };
 
-  const handleChatSubmit = async (e, noteId) => {
-    e.preventDefault();
+  const handleChatSubmit = async (e, noteId, customAudio = null) => {
+    if (e) e.preventDefault();
     if (!userProfile) {
       setShowVerifyModal(true);
       return;
     }
     
     const text = chatInputs[noteId];
-    if (!text || !text.trim()) return;
+    if (!customAudio && (!text || !text.trim())) return;
 
     const newNotes = approvedNotes.map(note => {
       if (note.id === noteId) {
         return {
           ...note,
-          comments: [...(note.comments || []), { author: userProfile.name, text }]
+          comments: [...(note.comments || []), { 
+            id: Date.now(), 
+            author: userProfile.name, 
+            text: text || '', 
+            audio: customAudio 
+          }]
         };
       }
       return note;
@@ -119,6 +129,28 @@ export default function TrendsPage() {
     setApprovedNotes(newNotes);
     await localforage.setItem('approvedNotes', newNotes);
     setChatInputs({ ...chatInputs, [noteId]: '' });
+  };
+
+  const deleteNote = async (noteId) => {
+    if (!window.confirm("Delete this entire note?")) return;
+    const newNotes = approvedNotes.filter(n => n.id !== noteId);
+    setApprovedNotes(newNotes);
+    await localforage.setItem('approvedNotes', newNotes);
+    triggerToast('Note deleted.');
+  };
+
+  const deleteComment = async (noteId, commentId) => {
+    const newNotes = approvedNotes.map(note => {
+      if (note.id === noteId) {
+        return {
+          ...note,
+          comments: note.comments.filter(c => c.id !== commentId)
+        };
+      }
+      return note;
+    });
+    setApprovedNotes(newNotes);
+    await localforage.setItem('approvedNotes', newNotes);
   };
 
   const handleLike = async (noteId) => {
@@ -143,6 +175,48 @@ export default function TrendsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const startRecording = async (noteId) => {
+    if (!userProfile) {
+      setShowVerifyModal(true);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current[noteId] = mediaRecorder;
+      audioChunksRef.current[noteId] = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current[noteId].push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current[noteId], { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          handleChatSubmit(null, noteId, reader.result);
+        };
+        reader.readAsDataURL(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording({ ...isRecording, [noteId]: true });
+    } catch (err) {
+      console.error("Microphone access denied", err);
+      triggerToast("Microphone access required for voice messages.");
+    }
+  };
+
+  const stopRecording = (noteId) => {
+    if (mediaRecorderRef.current[noteId]) {
+      mediaRecorderRef.current[noteId].stop();
+      setIsRecording({ ...isRecording, [noteId]: false });
+    }
   };
 
   return (
@@ -270,6 +344,11 @@ export default function TrendsPage() {
                       </div>
                     </div>
                   </div>
+                  {userProfile && userProfile.name === note.author && (
+                    <button onClick={() => deleteNote(note.id)} className="text-red-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
                 
                 <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">{note.title}</h3>
@@ -313,19 +392,31 @@ export default function TrendsPage() {
               <div className="bg-slate-50 dark:bg-slate-900/50 p-6 border-t border-slate-200 dark:border-slate-700">
                 <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2">
                   {(note.comments || []).map((comment, idx) => (
-                    <div key={idx} className="flex gap-3">
+                    <div key={idx} className="flex gap-3 group/comment relative">
                       <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold shrink-0">
                         {comment.author.charAt(0).toUpperCase()}
                       </div>
-                      <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-200 dark:border-slate-700">
-                        <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">{comment.author}</div>
-                        <div className="text-sm">{comment.text}</div>
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-200 dark:border-slate-700 group-hover/comment:border-indigo-300 transition-colors max-w-lg">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">{comment.author}</div>
+                          {userProfile && userProfile.name === comment.author && (
+                            <button onClick={() => deleteComment(note.id, comment.id)} className="text-slate-400 hover:text-red-500 opacity-0 group-hover/comment:opacity-100 transition-opacity">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        {comment.text && <div className="text-sm text-slate-800 dark:text-slate-200">{comment.text}</div>}
+                        {comment.audio && (
+                          <div className="mt-2">
+                            <audio controls src={comment.audio} className="h-8 max-w-full" />
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
                 
-                <form onSubmit={(e) => handleChatSubmit(e, note.id)} className="flex gap-2">
+                <form onSubmit={(e) => handleChatSubmit(e, note.id)} className="flex gap-2 items-center">
                   <input 
                     type="text" 
                     placeholder={userProfile ? "Write a reply..." : "Verify to reply..."}
@@ -334,6 +425,27 @@ export default function TrendsPage() {
                     onFocus={() => !userProfile && setShowVerifyModal(true)}
                     className="flex-1 px-4 py-2.5 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all"
                   />
+                  
+                  {isRecording[note.id] ? (
+                    <button 
+                      type="button" 
+                      onClick={() => stopRecording(note.id)}
+                      className="w-10 h-10 rounded-full bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 flex items-center justify-center transition-colors shrink-0 animate-pulse"
+                      title="Stop Recording"
+                    >
+                      <Square className="w-4 h-4 fill-current" />
+                    </button>
+                  ) : (
+                    <button 
+                      type="button" 
+                      onClick={() => startRecording(note.id)}
+                      className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center transition-colors shrink-0"
+                      title="Record Voice Note"
+                    >
+                      <Mic className="w-4 h-4" />
+                    </button>
+                  )}
+                  
                   <button 
                     type="submit" 
                     className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition-colors shrink-0"

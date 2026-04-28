@@ -68,21 +68,47 @@ export default function AdminDashboard() {
     triggerToast('Note rejected and removed.');
   };
 
-  const handleUpload = (e) => {
+  const handleUpload = async (e) => {
     e.preventDefault();
-    if (!uploadForm.title) {
-      triggerToast('Please provide a title');
+    if (!uploadForm.title || !uploadForm.file) {
+      triggerToast('Please provide a title and select a file.');
       return;
     }
     
-    // Simulate upload
-    triggerToast('File uploaded successfully!');
-    setUploadForm({ subject: subjects[0].id, title: '', file: null });
-    setStats(prev => {
-      const newStats = [...prev];
-      newStats[0].value += 1; // Total PPTs up
-      return newStats;
-    });
+    try {
+      const { default: localforage } = await import('localforage');
+      const savedPPTs = await localforage.getItem('adminPPTs') || [];
+      const newPPT = {
+        id: Date.now(),
+        subjectId: uploadForm.subject,
+        title: uploadForm.title,
+        fileName: uploadForm.fileName,
+        fileData: uploadForm.fileData
+      };
+      await localforage.setItem('adminPPTs', [newPPT, ...savedPPTs]);
+      
+      triggerToast('File uploaded and published successfully!');
+      setUploadForm({ subject: subjects[0].id, title: '', file: null, fileName: '', fileData: null });
+      setStats(prev => {
+        const newStats = [...prev];
+        newStats[0].value += 1; // Total PPTs up
+        return newStats;
+      });
+    } catch (err) {
+      console.error(err);
+      triggerToast('Error saving file.');
+    }
+  };
+
+  const handleAdminFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadForm({ ...uploadForm, file: file, fileName: file.name, fileData: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -191,14 +217,16 @@ export default function AdminDashboard() {
               <div>
                 <label className="block text-sm font-medium mb-1">File (PPT, PDF)</label>
                 <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer relative">
-                  <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <input type="file" onChange={handleAdminFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".ppt,.pptx,.pdf,.doc,.docx" />
                   <Upload className="w-8 h-8 text-slate-400 mx-auto mb-3" />
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Click to upload or drag and drop</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {uploadForm.fileName ? <span className="font-bold text-indigo-600 dark:text-indigo-400">{uploadForm.fileName}</span> : "Click to upload or drag and drop"}
+                  </p>
                   <p className="text-xs text-slate-500 mt-1">.ppt, .pptx, .pdf up to 50MB</p>
                 </div>
               </div>
               <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors">
-                Upload File
+                Publish Material
               </button>
             </form>
           </div>

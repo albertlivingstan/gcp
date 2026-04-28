@@ -45,7 +45,7 @@ export const subjects = [
 
 export const mockPPTs = {
   'system-software': [
-    { id: 1, title: 'Introduction to Compilers', url: 'https://docs.google.com/presentation/d/e/2PACX-1vT-mock1/embed?start=false&loop=false&delayms=3000' }
+    { id: 1, title: 'Introduction to Compilers', url: 'https://docs.google.com/presentation/d/1L8DunCwAcIn1yx5OgtPWNuwxRG0NrNa1/edit?usp=sharing&ouid=115633142695649252380&rtpof=true&sd=true' }
   ],
   'machine-learning': [
     { id: 2, title: 'Supervised Learning', url: 'https://docs.google.com/presentation/d/e/2PACX-1vT-mock2/embed?start=false&loop=false&delayms=3000' }

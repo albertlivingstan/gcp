@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, MessageCircle, Smile, Mic, Square, Image as ImageIcon, Trash2, Loader2 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, limit } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 export default function LiveChat({ userProfile, onRequestVerify }) {
   const [messages, setMessages] = useState([]);
@@ -67,7 +66,7 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
         setInputValue('');
       } catch (error) {
         console.error("Error sending message:", error);
-        alert("Failed to send message.");
+        alert("Failed to send message. Make sure files are under 800KB.");
       }
     }
   };
@@ -80,51 +79,27 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
     }
   };
 
-  const uploadFileToStorage = async (file, path) => {
-    return new Promise((resolve, reject) => {
-      const storageRef = ref(storage, path);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          // Can monitor progress here if needed
-        },
-        (error) => {
-          console.error("Upload error:", error);
-          reject(error);
-        },
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
-        }
-      );
-    });
-  };
-
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = (e) => {
     if (!userProfile) {
       if (onRequestVerify) onRequestVerify();
       return;
     }
     const file = e.target.files[0];
     if (file) {
-      // Allow up to 12MB images
-      if (file.size > 12 * 1024 * 1024) { 
-        alert("Image is too large! Please upload an image smaller than 12MB.");
+      // 800KB limit for base64 storage in Firestore
+      if (file.size > 800 * 1024) { 
+        alert("Image is too large! Please upload an image smaller than 800KB.");
+        if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
       setIsUploading(true);
-      try {
-        const path = `chat_images/${Date.now()}_${file.name}`;
-        const downloadURL = await uploadFileToStorage(file, path);
-        await handleSendMessage(null, { image: downloadURL });
-      } catch (err) {
-        alert("Failed to upload image.");
-      } finally {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        await handleSendMessage(null, { image: reader.result });
         setIsUploading(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
-      }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -144,23 +119,24 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        // Allow up to 12MB audio
-        if (audioBlob.size > 12 * 1024 * 1024) {
-          alert("Voice message too long! Please keep it under 12MB.");
+        // Prevent corrupted format on Safari
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        
+        // 800KB limit for base64 storage in Firestore
+        if (audioBlob.size > 800 * 1024) {
+          alert("Voice message too long! Please keep it short (under 800KB).");
           return;
         }
         
         setIsUploading(true);
-        try {
-          const path = `chat_audio/${Date.now()}_voice_note.webm`;
-          const downloadURL = await uploadFileToStorage(audioBlob, path);
-          await handleSendMessage(null, { audio: downloadURL });
-        } catch (err) {
-          alert("Failed to upload voice message.");
-        } finally {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          await handleSendMessage(null, { audio: reader.result });
           setIsUploading(false);
-        }
+        };
+        reader.readAsDataURL(audioBlob);
+        
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -180,8 +156,8 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
   };
 
   return (
-    <div className="flex flex-col h-[650px] bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden sticky top-24">
-      <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center gap-3 shadow-md z-10">
+    <div className="flex flex-col h-[500px] lg:h-[650px] w-full bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden lg:sticky lg:top-24 mb-8 lg:mb-0">
+      <div className="p-3 sm:p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center gap-3 shadow-md z-10">
         <MessageCircle className="w-6 h-6" />
         <div>
           <h2 className="font-bold text-lg leading-tight">Live Chat</h2>
@@ -234,16 +210,16 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
           </div>
         )}
         
-        <form onSubmit={(e) => handleSendMessage(e)} className="p-3 flex items-center gap-2">
+        <form onSubmit={(e) => handleSendMessage(e)} className="p-2 sm:p-3 flex items-center gap-1 sm:gap-2">
           <button 
             type="button" 
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="text-slate-400 hover:text-indigo-500 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            className="text-slate-400 hover:text-indigo-500 p-1.5 sm:p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shrink-0"
           >
             <Smile className="w-5 h-5" />
           </button>
 
-          <label className={`text-slate-400 p-2 rounded-full transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer'}`}>
+          <label className={`text-slate-400 p-1.5 sm:p-2 rounded-full transition-colors shrink-0 ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer'}`}>
             {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
             <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} ref={fileInputRef} disabled={isUploading} />
           </label>
@@ -256,9 +232,9 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
               if (!userProfile && onRequestVerify) onRequestVerify();
               setShowEmojiPicker(false);
             }}
-            placeholder={isUploading ? "Uploading..." : (isRecording ? "Recording..." : (userProfile ? "Message..." : "Verify to chat..."))}
+            placeholder={isUploading ? "Uploading..." : (isRecording ? "Recording..." : (userProfile ? "Message..." : "Verify..."))}
             disabled={isRecording || isUploading}
-            className="flex-1 px-4 py-2.5 rounded-full border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all"
+            className="flex-1 w-0 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all"
           />
           
           {inputValue.trim() ? (

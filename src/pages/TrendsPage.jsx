@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, ThumbsUp, Send, User, Upload, FileText, CheckCircle, Trash2, Mic, Square } from 'lucide-react';
 import localforage from 'localforage';
 import { subjects } from '../data/mockData';
+import LiveChat from '../components/LiveChat';
 
 export default function TrendsPage() {
   const [approvedNotes, setApprovedNotes] = useState([]);
@@ -220,7 +221,7 @@ export default function TrendsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 relative">
+    <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 animate-in fade-in duration-500 relative">
       
       {showToast && (
         <div className="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-in slide-in-from-bottom-5">
@@ -270,7 +271,8 @@ export default function TrendsPage() {
         </div>
       )}
 
-      <div>
+      <div className="flex-1 space-y-8">
+        <div>
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Community Trends</h1>
         <p className="text-slate-500 dark:text-slate-400 mt-2">Discover, discuss, and share study notes and files with your peers.</p>
       </div>
@@ -457,7 +459,13 @@ export default function TrendsPage() {
             </div>
           ))
         )}
+        </div>
       </div>
+
+      <div className="w-full lg:w-[350px] shrink-0">
+        <LiveChat userProfile={userProfile} onRequestVerify={() => setShowVerifyModal(true)} />
+      </div>
+
     </div>
   );
 }

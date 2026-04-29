@@ -29,7 +29,9 @@ io.on('connection', (socket) => {
       id: Date.now(),
       text: msg.text,
       user: msg.user || 'Anonymous',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      audio: msg.audio || null,
+      image: msg.image || null
     };
     
     chatHistory.push(messageData);
@@ -37,6 +39,11 @@ io.on('connection', (socket) => {
     if (chatHistory.length > 50) chatHistory.shift();
 
     io.emit('chat message', messageData);
+  });
+
+  socket.on('delete message', (id) => {
+    chatHistory = chatHistory.filter(msg => msg.id !== id);
+    io.emit('message deleted', id);
   });
 
   socket.on('disconnect', () => {

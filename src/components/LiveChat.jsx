@@ -1,44 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Send, MessageCircle } from 'lucide-react';
+import { Send, MessageCircle, Smile, Mic, Square, Image as ImageIcon, Trash2 } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react';
 
-const SOCKET_SERVER_URL = 'http://localhost:5001';
+const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001';
 
 export default function LiveChat({ userProfile, onRequestVerify }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isConnected, setIsConnected] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    // Initialize socket connection
     socketRef.current = io(SOCKET_SERVER_URL);
 
-    socketRef.current.on('connect', () => {
-      setIsConnected(true);
-    });
+    socketRef.current.on('connect', () => setIsConnected(true));
+    socketRef.current.on('disconnect', () => setIsConnected(false));
 
-    socketRef.current.on('disconnect', () => {
-      setIsConnected(false);
-    });
-
-    // Listen for initial chat history
     socketRef.current.on('chat history', (history) => {
       setMessages(history);
       scrollToBottom();
     });
 
-    // Listen for incoming new messages
     socketRef.current.on('chat message', (msg) => {
       setMessages((prev) => [...prev, msg]);
       scrollToBottom();
     });
 
+    socketRef.current.on('message deleted', (deletedId) => {
+      setMessages((prev) => prev.filter(m => m.id !== deletedId));
+    });
+
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      if (socketRef.current) socketRef.current.disconnect();
     };
   }, []);
 
@@ -48,43 +49,130 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
     }, 100);
   };
 
-  const handleSendMessage = (e) => {
-    e.preventDefault();
+  const onEmojiClick = (emojiObject) => {
+    setInputValue(prev => prev + emojiObject.emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleSendMessage = (e, customData = {}) => {
+    if (e) e.preventDefault();
     if (!userProfile) {
       if (onRequestVerify) onRequestVerify();
       return;
     }
     
-    if (inputValue.trim() && socketRef.current) {
+    if ((inputValue.trim() || customData.audio || customData.image) && socketRef.current) {
       socketRef.current.emit('chat message', {
         text: inputValue,
-        user: userProfile.name
+        user: userProfile.name,
+        audio: customData.audio || null,
+        image: customData.image || null
       });
       setInputValue('');
     }
   };
 
+  const handleDeleteMessage = (id) => {
+    if (socketRef.current) {
+      socketRef.current.emit('delete message', id);
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    if (!userProfile) {
+      if (onRequestVerify) onRequestVerify();
+      return;
+    }
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleSendMessage(null, { image: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const startRecording = async () => {
+    if (!userProfile) {
+      if (onRequestVerify) onRequestVerify();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          handleSendMessage(null, { audio: reader.result });
+        };
+        reader.readAsDataURL(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access denied", err);
+      alert("Microphone access required for voice messages.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-[600px] bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden sticky top-24">
-      <div className="p-4 bg-indigo-600 text-white flex items-center gap-2 shadow-md">
-        <MessageCircle className="w-5 h-5" />
-        <h2 className="font-bold text-lg">Live Community Chat</h2>
-        <div className={`w-2.5 h-2.5 rounded-full ml-auto ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} title={isConnected ? "Connected" : "Disconnected"}></div>
+    <div className="flex flex-col h-[650px] bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden sticky top-24">
+      <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center gap-3 shadow-md z-10">
+        <MessageCircle className="w-6 h-6" />
+        <div>
+          <h2 className="font-bold text-lg leading-tight">Live Chat</h2>
+          <p className="text-xs text-indigo-100 opacity-90">{isConnected ? 'Online' : 'Connecting...'}</p>
+        </div>
+        <div className={`w-2.5 h-2.5 rounded-full ml-auto ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
       </div>
       
-      <div className="flex-1 p-4 overflow-y-auto bg-slate-50 dark:bg-slate-900/50 space-y-4">
+      <div className="flex-1 p-4 overflow-y-auto bg-slate-50 dark:bg-slate-900 space-y-4 relative" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/cubes.png")', backgroundBlendMode: 'overlay' }}>
         {messages.length === 0 ? (
           <div className="h-full flex items-center justify-center text-slate-400 text-sm text-center px-4">
-            No messages yet. Be the first to start the conversation!
+            Start the conversation! Say hi to the community.
           </div>
         ) : (
           messages.map((msg) => {
             const isMe = userProfile && msg.user === userProfile.name;
             return (
-              <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
-                <span className="text-xs text-slate-500 dark:text-slate-400 mb-1 px-1">{msg.user}</span>
-                <div className={`px-4 py-2 rounded-2xl max-w-[85%] text-sm ${isMe ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 rounded-bl-sm shadow-sm'}`}>
-                  {msg.text}
+              <div key={msg.id} className={`flex flex-col group ${isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
+                <span className="text-[10px] font-medium text-slate-400 mb-1 px-1">{msg.user} • {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                <div className={`relative px-4 py-2.5 rounded-2xl max-w-[85%] text-sm shadow-sm transition-all ${isMe ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-bl-sm'}`}>
+                  {msg.image && (
+                    <img src={msg.image} alt="chat attachment" className="max-w-full rounded-xl mb-2 object-cover max-h-48" />
+                  )}
+                  {msg.audio && (
+                    <audio controls src={msg.audio} className="h-8 max-w-full mb-2" />
+                  )}
+                  {msg.text && <div className="break-words">{msg.text}</div>}
+                  
+                  {isMe && (
+                    <button 
+                      onClick={() => handleDeleteMessage(msg.id)}
+                      className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-full transition-all"
+                      title="Unsend message"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -93,23 +181,70 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
         <div ref={messagesEndRef} />
       </div>
       
-      <form onSubmit={handleSendMessage} className="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex gap-2">
-        <input 
-          type="text" 
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onFocus={() => !userProfile && onRequestVerify && onRequestVerify()}
-          placeholder={userProfile ? "Type a message..." : "Verify to chat..."}
-          className="flex-1 px-4 py-2.5 rounded-full border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all"
-        />
-        <button 
-          type="submit" 
-          disabled={!isConnected}
-          className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white flex items-center justify-center transition-colors shrink-0 shadow-sm"
-        >
-          <Send className="w-4 h-4 -ml-0.5" />
-        </button>
-      </form>
+      <div className="relative bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+        {showEmojiPicker && (
+          <div className="absolute bottom-full right-0 mb-2 z-50 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-5">
+            <EmojiPicker onEmojiClick={onEmojiClick} theme="auto" />
+          </div>
+        )}
+        
+        <form onSubmit={(e) => handleSendMessage(e)} className="p-3 flex items-center gap-2">
+          <button 
+            type="button" 
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="text-slate-400 hover:text-indigo-500 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            <Smile className="w-5 h-5" />
+          </button>
+
+          <label className="text-slate-400 hover:text-indigo-500 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+            <ImageIcon className="w-5 h-5" />
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} ref={fileInputRef} />
+          </label>
+          
+          <input 
+            type="text" 
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onFocus={() => {
+              if (!userProfile && onRequestVerify) onRequestVerify();
+              setShowEmojiPicker(false);
+            }}
+            placeholder={isRecording ? "Recording..." : (userProfile ? "Message..." : "Verify to chat...")}
+            disabled={isRecording}
+            className="flex-1 px-4 py-2.5 rounded-full border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all"
+          />
+          
+          {inputValue.trim() ? (
+            <button 
+              type="submit" 
+              disabled={!isConnected}
+              className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white flex items-center justify-center transition-colors shrink-0 shadow-sm"
+            >
+              <Send className="w-4 h-4 -ml-0.5" />
+            </button>
+          ) : (
+            isRecording ? (
+              <button 
+                type="button" 
+                onClick={stopRecording}
+                className="w-10 h-10 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center transition-colors shrink-0 animate-pulse shadow-sm"
+              >
+                <Square className="w-4 h-4 fill-current" />
+              </button>
+            ) : (
+              <button 
+                type="button" 
+                onClick={startRecording}
+                disabled={!isConnected}
+                className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 flex items-center justify-center transition-colors shrink-0"
+              >
+                <Mic className="w-4 h-4" />
+              </button>
+            )
+          )}
+        </form>
+      </div>
     </div>
   );
 }

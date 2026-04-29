@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import localforage from 'localforage';
 import { subjects, mockPPTs } from '../../data/mockData';
 import { Upload, Check, X, BookOpen, FileText, Settings, Users, LayoutDashboard, Plus, CheckCircle } from 'lucide-react';
 
@@ -29,7 +30,6 @@ export default function AdminDashboard() {
     const noteToApprove = pendingNotes.find(n => n.id === id);
     if (noteToApprove) {
       try {
-        const { default: localforage } = await import('localforage');
         const currentApproved = await localforage.getItem('approvedNotes') || [];
         const newApproved = [{
           id: noteToApprove.id,
@@ -76,7 +76,6 @@ export default function AdminDashboard() {
     }
     
     try {
-      const { default: localforage } = await import('localforage');
       const savedPPTs = await localforage.getItem('adminPPTs') || [];
       const newPPT = {
         id: Date.now(),

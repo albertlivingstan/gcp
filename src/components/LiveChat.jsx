@@ -1,46 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
 import { Send, MessageCircle, Smile, Mic, Square, Image as ImageIcon, Trash2 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
-
-const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001';
+import { db } from '../firebase';
+import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, limit } from 'firebase/firestore';
 
 export default function LiveChat({ userProfile, onRequestVerify }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // Firebase manages connection
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   
-  const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    socketRef.current = io(SOCKET_SERVER_URL);
+    // Reference to the 'messages' collection
+    const messagesRef = collection(db, 'messages');
+    // Query: order by timestamp descending to get newest, limit to 50
+    const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(50));
 
-    socketRef.current.on('connect', () => setIsConnected(true));
-    socketRef.current.on('disconnect', () => setIsConnected(false));
-
-    socketRef.current.on('chat history', (history) => {
-      setMessages(history);
+    // Listen for real-time updates
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedMessages = [];
+      snapshot.forEach((doc) => {
+        fetchedMessages.push({ id: doc.id, ...doc.data() });
+      });
+      // Reverse array so oldest is at the top, newest at the bottom
+      setMessages(fetchedMessages.reverse());
       scrollToBottom();
+    }, (error) => {
+      console.error("Firebase Chat Error:", error);
+      setIsConnected(false);
     });
 
-    socketRef.current.on('chat message', (msg) => {
-      setMessages((prev) => [...prev, msg]);
-      scrollToBottom();
-    });
-
-    socketRef.current.on('message deleted', (deletedId) => {
-      setMessages((prev) => prev.filter(m => m.id !== deletedId));
-    });
-
-    return () => {
-      if (socketRef.current) socketRef.current.disconnect();
-    };
+    return () => unsubscribe();
   }, []);
 
   const scrollToBottom = () => {
@@ -54,27 +50,35 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
     setShowEmojiPicker(false);
   };
 
-  const handleSendMessage = (e, customData = {}) => {
+  const handleSendMessage = async (e, customData = {}) => {
     if (e) e.preventDefault();
     if (!userProfile) {
       if (onRequestVerify) onRequestVerify();
       return;
     }
     
-    if ((inputValue.trim() || customData.audio || customData.image) && socketRef.current) {
-      socketRef.current.emit('chat message', {
-        text: inputValue,
-        user: userProfile.name,
-        audio: customData.audio || null,
-        image: customData.image || null
-      });
-      setInputValue('');
+    if (inputValue.trim() || customData.audio || customData.image) {
+      try {
+        await addDoc(collection(db, 'messages'), {
+          text: inputValue,
+          user: userProfile.name,
+          audio: customData.audio || null,
+          image: customData.image || null,
+          timestamp: new Date().toISOString()
+        });
+        setInputValue('');
+      } catch (error) {
+        console.error("Error sending message:", error);
+        alert("Failed to send message. Image/Audio might be too large (max 1MB).");
+      }
     }
   };
 
-  const handleDeleteMessage = (id) => {
-    if (socketRef.current) {
-      socketRef.current.emit('delete message', id);
+  const handleDeleteMessage = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'messages', id));
+    } catch (error) {
+      console.error("Error deleting message:", error);
     }
   };
 
@@ -85,6 +89,11 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
     }
     const file = e.target.files[0];
     if (file) {
+      // Firebase Firestore limits documents to 1MB. We must compress or ensure the image is small.
+      if (file.size > 800000) { // ~800KB limit for safe base64
+        alert("Image is too large! Please upload an image smaller than 800KB.");
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         handleSendMessage(null, { image: reader.result });
@@ -110,6 +119,10 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        if (audioBlob.size > 800000) {
+          alert("Voice message too long! Please keep it under 30 seconds.");
+          return;
+        }
         const reader = new FileReader();
         reader.onloadend = () => {
           handleSendMessage(null, { audio: reader.result });
@@ -139,7 +152,7 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
         <MessageCircle className="w-6 h-6" />
         <div>
           <h2 className="font-bold text-lg leading-tight">Live Chat</h2>
-          <p className="text-xs text-indigo-100 opacity-90">{isConnected ? 'Online' : 'Connecting...'}</p>
+          <p className="text-xs text-indigo-100 opacity-90">{isConnected ? 'Online (Firebase)' : 'Disconnected'}</p>
         </div>
         <div className={`w-2.5 h-2.5 rounded-full ml-auto ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
       </div>

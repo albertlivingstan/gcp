@@ -1,5 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User as UserIcon, Loader2, Trash2 } from 'lucide-react';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true
+});
 
 export default function ChatBox({ subject }) {
   const [messages, setMessages] = useState([
@@ -26,17 +32,22 @@ export default function ChatBox({ subject }) {
     setInput('');
     setIsLoading(true);
 
-    // Mocking an AI response since we don't have the Anthropic API key here
-    setTimeout(() => {
-      setMessages(prev => [
-        ...prev, 
-        { 
-          role: 'assistant', 
-          content: `This is a simulated AI response for ${subject.title}. In a real application, this would call the Anthropic Claude API (claude-sonnet-4) using a backend function with the system prompt: "You are a helpful study assistant for ${subject.title} for engineering students..."` 
-        }
-      ]);
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: 'system', content: `You are a helpful study assistant for ${subject.title}.` },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+          userMessage
+        ]
+      });
+      setMessages(prev => [...prev, { role: 'assistant', content: response.choices[0].message.content }]);
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting to my brain right now." }]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const clearChat = () => {

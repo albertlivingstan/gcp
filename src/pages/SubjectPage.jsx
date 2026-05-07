@@ -4,6 +4,8 @@ import { ArrowLeft, BookOpen, PenTool, HelpCircle, Users, Download, Bookmark, Ch
 import localforage from 'localforage';
 import { subjects, mockPPTs, mockBigQuestions } from '../data/mockData';
 import ChatBox from '../components/ChatBox';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 export default function SubjectPage() {
   const { id } = useParams();
@@ -22,15 +24,18 @@ export default function SubjectPage() {
   useEffect(() => {
     const loadCustomPPTs = async () => {
       try {
-        const savedPPTs = await localforage.getItem('adminPPTs');
-        if (savedPPTs) {
-          const subjectPpts = savedPPTs.filter(ppt => ppt.subjectId === id);
-          if (subjectPpts.length > 0) {
-            setPpts([...subjectPpts, ...basePpts]);
-          }
+        const querySnapshot = await getDocs(collection(db, 'adminPPTs'));
+        const savedPPTs = [];
+        querySnapshot.forEach((doc) => {
+          savedPPTs.push({ id: doc.id, ...doc.data() });
+        });
+        
+        const subjectPpts = savedPPTs.filter(ppt => ppt.subjectId === id);
+        if (subjectPpts.length > 0) {
+          setPpts([...subjectPpts, ...basePpts]);
         }
       } catch (err) {
-        console.error('Error loading custom PPTs', err);
+        console.error('Error loading custom PPTs from Firebase', err);
       }
     };
     loadCustomPPTs();
@@ -46,16 +51,25 @@ export default function SubjectPage() {
     document.body.removeChild(link);
   };
 
-  const getEmbedUrl = (url) => {
+  const getEmbedUrl = (url, fileName) => {
     if (!url) return '';
     if (url.includes('docs.google.com/presentation/d/')) {
       const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
       if (match && match[1]) {
-        // e.g. for /d/e/ links it might have an 'e/' inside the ID, wait, match[1] would stop at /.
-        // Actually, safer replace:
         return url.replace(/\/edit.*$/, '/embed?start=false&loop=false&delayms=3000').replace(/\/view.*$/, '/embed?start=false&loop=false&delayms=3000');
       }
     }
+    
+    // For PDFs uploaded to Firebase or anywhere
+    if (fileName && fileName.toLowerCase().endsWith('.pdf')) {
+      return url; // iFrame can usually render PDF directly
+    }
+    
+    // For PPT/PPTX uploaded, use Google Docs Viewer
+    if (fileName && (fileName.toLowerCase().endsWith('.ppt') || fileName.toLowerCase().endsWith('.pptx') || fileName.toLowerCase().endsWith('.doc') || fileName.toLowerCase().endsWith('.docx'))) {
+      return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+    }
+    
     return url;
   };
 
@@ -151,7 +165,7 @@ export default function SubjectPage() {
                     </div>
                     {ppt.url ? (
                       <iframe 
-                        src={getEmbedUrl(ppt.url)} 
+                        src={getEmbedUrl(ppt.url, ppt.fileName)} 
                         className="w-full flex-1 min-h-[500px] bg-slate-100" 
                         frameBorder="0"
                         allowFullScreen={true}
@@ -159,7 +173,7 @@ export default function SubjectPage() {
                     ) : (
                       <div className="flex-1 min-h-[300px] bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center text-slate-500">
                         <FileText className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
-                        <p className="text-lg font-medium text-slate-600 dark:text-slate-400">Custom Document Uploaded</p>
+                        <p className="text-lg font-medium text-slate-600 dark:text-slate-400">Document Uploaded</p>
                         <p className="text-sm mt-1 mb-4">Please download to view this file locally.</p>
                         <button 
                           onClick={() => handleDownload(ppt.fileData, ppt.fileName)}

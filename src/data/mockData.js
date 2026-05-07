@@ -71,7 +71,9 @@ export const mockPPTs = {
     { id: 2, title: 'Supervised Learning', url: 'https://docs.google.com/presentation/d/e/2PACX-1vT-mock2/embed?start=false&loop=false&delayms=3000' }
   ],
   'devops': [
-    { id: 3, title: 'CI/CD Pipelines', url: 'https://docs.google.com/presentation/d/e/2PACX-1vT-mock3/embed?start=false&loop=false&delayms=3000' }
+    { id: 2, title: 'Docker Containers', url: 'https://docs.google.com/presentation/d/1REWTxo3-_q_Uy3C9bFAxwq9OJLYWG5d8XYcAhm0EOA4/edit?usp=sharing' },
+    { id: 1, title: 'CI/CD Pipelines', url: 'https://docs.google.com/presentation/d/1obdzkDt9f5GWNdrSfBe4mQ2t43ZVd_44AumrOYzY6LQ/edit?usp=sharing' },
+
   ],
   'cryptography': [
     { id: 4, title: 'Public Key Infrastructure', url: 'https://docs.google.com/presentation/d/e/2PACX-1vT-mock4/embed?start=false&loop=false&delayms=3000' }

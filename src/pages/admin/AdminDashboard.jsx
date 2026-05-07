@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import localforage from 'localforage';
 import { subjects, mockPPTs } from '../../data/mockData';
-import { Upload, Check, X, BookOpen, FileText, Settings, Users, LayoutDashboard, Plus, CheckCircle } from 'lucide-react';
+import { Upload, Check, X, BookOpen, FileText, Settings, Users, LayoutDashboard, Plus, CheckCircle, Link } from 'lucide-react';
+import { db, storage } from '../../firebase';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -19,7 +22,8 @@ export default function AdminDashboard() {
     { id: 2, subject: 'Machine Learning', title: 'SVM Kernel Tricks', author: 'DataNerd', snippet: 'The kernel trick allows SVMs to solve non-linear...' },
   ]);
 
-  const [uploadForm, setUploadForm] = useState({ subject: subjects[0].id, title: '', file: null });
+  const [uploadForm, setUploadForm] = useState({ subject: subjects[0].id, title: '', file: null, fileName: '', url: '' });
+  const [isUploading, setIsUploading] = useState(false);
 
   const triggerToast = (message) => {
     setShowToast(message);
@@ -70,24 +74,33 @@ export default function AdminDashboard() {
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!uploadForm.title || !uploadForm.file) {
-      triggerToast('Please provide a title and select a file.');
+    if (!uploadForm.title || (!uploadForm.file && !uploadForm.url)) {
+      triggerToast('Please provide a title and select a file or enter a Google Slides URL.');
       return;
     }
     
+    setIsUploading(true);
     try {
-      const savedPPTs = await localforage.getItem('adminPPTs') || [];
-      const newPPT = {
-        id: Date.now(),
+      let fileUrl = uploadForm.url || '';
+      
+      if (uploadForm.file) {
+        const fileRef = ref(storage, `adminPPTs/${Date.now()}_${uploadForm.file.name}`);
+        await uploadBytes(fileRef, uploadForm.file);
+        fileUrl = await getDownloadURL(fileRef);
+      }
+
+      const newDoc = {
         subjectId: uploadForm.subject,
         title: uploadForm.title,
-        fileName: uploadForm.fileName,
-        fileData: uploadForm.fileData
+        fileName: uploadForm.file ? uploadForm.file.name : 'Google Slides Link',
+        url: fileUrl,
+        createdAt: new Date().toISOString()
       };
-      await localforage.setItem('adminPPTs', [newPPT, ...savedPPTs]);
+
+      await addDoc(collection(db, 'adminPPTs'), newDoc);
       
       triggerToast('File uploaded and published successfully!');
-      setUploadForm({ subject: subjects[0].id, title: '', file: null, fileName: '', fileData: null });
+      setUploadForm({ subject: subjects[0].id, title: '', file: null, fileName: '', url: '' });
       setStats(prev => {
         const newStats = [...prev];
         newStats[0].value += 1; // Total PPTs up
@@ -95,18 +108,16 @@ export default function AdminDashboard() {
       });
     } catch (err) {
       console.error(err);
-      triggerToast('Error saving file.');
+      triggerToast('Error saving file to Firebase.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleAdminFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUploadForm({ ...uploadForm, file: file, fileName: file.name, fileData: reader.result });
-      };
-      reader.readAsDataURL(file);
+      setUploadForm({ ...uploadForm, file: file, fileName: file.name });
     }
   };
 
@@ -213,19 +224,37 @@ export default function AdminDashboard() {
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none" 
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">File (PPT, PDF)</label>
-                <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer relative">
-                  <input type="file" onChange={handleAdminFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".ppt,.pptx,.pdf,.doc,.docx" />
-                  <Upload className="w-8 h-8 text-slate-400 mx-auto mb-3" />
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {uploadForm.fileName ? <span className="font-bold text-indigo-600 dark:text-indigo-400">{uploadForm.fileName}</span> : "Click to upload or drag and drop"}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">.ppt, .pptx, .pdf up to 50MB</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">File (PPT, PDF)</label>
+                  <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer relative h-[180px] flex flex-col items-center justify-center">
+                    <input type="file" onChange={handleAdminFileChange} disabled={!!uploadForm.url} className={`absolute inset-0 w-full h-full opacity-0 ${uploadForm.url ? 'cursor-not-allowed' : 'cursor-pointer'}`} accept=".ppt,.pptx,.pdf,.doc,.docx" />
+                    <Upload className="w-8 h-8 text-slate-400 mx-auto mb-3" />
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {uploadForm.fileName ? <span className="font-bold text-indigo-600 dark:text-indigo-400">{uploadForm.fileName}</span> : "Click to upload or drag and drop"}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">.ppt, .pptx, .pdf up to 50MB</p>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col">
+                  <label className="block text-sm font-medium mb-1">Or Google Slides Link</label>
+                  <div className="flex-1 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-4 flex flex-col justify-center items-center bg-slate-50 dark:bg-slate-800/30">
+                    <Link className="w-8 h-8 text-slate-400 mb-3" />
+                    <input 
+                      type="url" 
+                      disabled={!!uploadForm.file}
+                      value={uploadForm.url}
+                      onChange={e => setUploadForm({...uploadForm, url: e.target.value})}
+                      placeholder="https://docs.google.com/presentation/d/..." 
+                      className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 outline-none ${uploadForm.file ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    />
+                    <p className="text-xs text-slate-500 mt-3 text-center">Paste a public Google Slides link to embed directly.</p>
+                  </div>
                 </div>
               </div>
-              <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors">
-                Publish Material
+              <button type="submit" disabled={isUploading} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white px-6 py-2.5 rounded-lg font-medium transition-colors w-full md:w-auto">
+                {isUploading ? 'Uploading to Firebase...' : 'Publish Material'}
               </button>
             </form>
           </div>

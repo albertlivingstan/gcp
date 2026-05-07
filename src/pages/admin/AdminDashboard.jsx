@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import localforage from 'localforage';
 import { subjects, mockPPTs } from '../../data/mockData';
-import { Upload, Check, X, BookOpen, FileText, Settings, Users, LayoutDashboard, Plus, CheckCircle, Link } from 'lucide-react';
+import { Upload, Check, X, BookOpen, FileText, Settings, Users, LayoutDashboard, Plus, CheckCircle, Link, Edit, Save } from 'lucide-react';
 import { db, storage } from '../../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -46,6 +46,29 @@ export default function AdminDashboard() {
   const [uploadForm, setUploadForm] = useState({ subject: subjects[0].id, title: '', file: null, fileName: '', url: '' });
   const [isUploading, setIsUploading] = useState(false);
   const [adminUploadedPPTs, setAdminUploadedPPTs] = useState([]);
+  const [editingPptId, setEditingPptId] = useState(null);
+  const [editForm, setEditForm] = useState({ title: '', subjectId: '', url: '' });
+
+  const handleEditClick = (ppt) => {
+    setEditingPptId(ppt.id);
+    setEditForm({ title: ppt.title, subjectId: ppt.subjectId, url: ppt.url || '' });
+  };
+
+  const handleUpdatePPT = async (id) => {
+    try {
+      await updateDoc(doc(db, 'adminPPTs', id), {
+        title: editForm.title,
+        subjectId: editForm.subjectId,
+        url: editForm.url
+      });
+      triggerToast('PPT updated successfully.');
+      setEditingPptId(null);
+      fetchAdminPPTs();
+    } catch (err) {
+      console.error(err);
+      triggerToast('Failed to update PPT.');
+    }
+  };
 
   const fetchAdminPPTs = async () => {
     try {
@@ -320,22 +343,67 @@ export default function AdminDashboard() {
                 <p className="text-slate-500 text-sm">No materials uploaded yet.</p>
               ) : (
                 adminUploadedPPTs.map(ppt => (
-                  <div key={ppt.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-indigo-500" />
-                      <div>
-                        <p className="font-semibold text-sm">{ppt.title}</p>
-                        <p className="text-xs text-slate-500">{subjects.find(s => s.id === ppt.subjectId)?.title || ppt.subjectId}</p>
-                        {ppt.fileName && <p className="text-xs text-slate-400 mt-0.5">{ppt.fileName}</p>}
+                  <div key={ppt.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg gap-4">
+                    {editingPptId === ppt.id ? (
+                      <div className="flex-1 w-full space-y-3">
+                        <input 
+                          type="text" 
+                          value={editForm.title} 
+                          onChange={(e) => setEditForm({...editForm, title: e.target.value})} 
+                          className="w-full px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-1 focus:ring-indigo-500 outline-none" 
+                        />
+                        <select 
+                          value={editForm.subjectId} 
+                          onChange={(e) => setEditForm({...editForm, subjectId: e.target.value})} 
+                          className="w-full px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                        >
+                          {subjects.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                        </select>
+                        <input 
+                          type="url" 
+                          value={editForm.url} 
+                          onChange={(e) => setEditForm({...editForm, url: e.target.value})} 
+                          placeholder="PPT/Slides URL"
+                          className="w-full px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-1 focus:ring-indigo-500 outline-none" 
+                        />
+                        <div className="flex gap-2">
+                          <button onClick={() => handleUpdatePPT(ppt.id)} className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                            <Save className="w-4 h-4" /> Save
+                          </button>
+                          <button onClick={() => setEditingPptId(null)} className="flex items-center gap-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <button 
-                      onClick={() => handleDeletePPT(ppt.id)}
-                      className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors"
-                      title="Remove PPT"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-indigo-500" />
+                          <div>
+                            <p className="font-semibold text-sm">{ppt.title}</p>
+                            <p className="text-xs text-slate-500">{subjects.find(s => s.id === ppt.subjectId)?.title || ppt.subjectId}</p>
+                            {ppt.url && <a href={ppt.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:underline mt-0.5 inline-block truncate max-w-[200px] sm:max-w-xs">{ppt.url}</a>}
+                            {ppt.fileName && !ppt.url && <p className="text-xs text-slate-400 mt-0.5">{ppt.fileName}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleEditClick(ppt)}
+                            className="text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 p-2 rounded-lg transition-colors"
+                            title="Edit PPT"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeletePPT(ppt.id)}
+                            className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors"
+                            title="Remove PPT"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))
               )}

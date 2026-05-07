@@ -17,10 +17,31 @@ export default function AdminDashboard() {
     { label: 'Total Students', value: 1042, icon: Users, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/50' },
   ]);
 
-  const [pendingNotes, setPendingNotes] = useState([
-    { id: 1, subject: 'System Software', title: 'Compiler Phases Summary', author: 'Student_104', snippet: 'Lexical analysis reads stream of characters and...' },
-    { id: 2, subject: 'Machine Learning', title: 'SVM Kernel Tricks', author: 'DataNerd', snippet: 'The kernel trick allows SVMs to solve non-linear...' },
-  ]);
+  const [pendingNotes, setPendingNotes] = useState([]);
+
+  const fetchPendingNotes = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'pendingNotes'));
+      const notes = [];
+      querySnapshot.forEach((doc) => {
+        notes.push({ id: doc.id, ...doc.data() });
+      });
+      setPendingNotes(notes);
+      
+      setStats(prev => {
+        const newStats = [...prev];
+        newStats[1].value = notes.length;
+        return newStats;
+      });
+    } catch (error) {
+      console.error("Error fetching pending notes", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminPPTs();
+    fetchPendingNotes();
+  }, []);
 
   const [uploadForm, setUploadForm] = useState({ subject: subjects[0].id, title: '', file: null, fileName: '', url: '' });
   const [isUploading, setIsUploading] = useState(false);
@@ -40,7 +61,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchAdminPPTs();
+    // Moved to the fetchPendingNotes above to fetch both
   }, []);
 
   const handleDeletePPT = async (id) => {
@@ -69,42 +90,37 @@ export default function AdminDashboard() {
     const noteToApprove = pendingNotes.find(n => n.id === id);
     if (noteToApprove) {
       try {
-        const currentApproved = await localforage.getItem('approvedNotes') || [];
-        const newApproved = [{
-          id: noteToApprove.id,
+        const approvedNote = {
           subject: noteToApprove.subject,
           title: noteToApprove.title,
-          content: noteToApprove.snippet + '\n\nFull approved content would appear here.',
+          content: noteToApprove.content,
           author: noteToApprove.author,
-          fileName: 'attached_document.pdf', // Mock file attachment
-          fileData: null,
+          fileName: noteToApprove.fileName || null,
+          fileUrl: noteToApprove.fileUrl || null,
           likes: 0,
-          comments: []
-        }, ...currentApproved];
-        await localforage.setItem('approvedNotes', newApproved);
+          comments: [],
+          createdAt: new Date().toISOString()
+        };
+        await addDoc(collection(db, 'approvedNotes'), approvedNote);
+        await deleteDoc(doc(db, 'pendingNotes', id));
+        fetchPendingNotes();
+        triggerToast('Note successfully approved and published to Trends!');
       } catch (err) {
         console.error(err);
+        triggerToast('Failed to approve note.');
       }
     }
-
-    setPendingNotes(prev => prev.filter(n => n.id !== id));
-    setStats(prev => {
-      const newStats = [...prev];
-      newStats[1].value = Math.max(0, newStats[1].value - 1); // Pending down
-      newStats[2].value += 1; // Approved up
-      return newStats;
-    });
-    triggerToast('Note successfully approved and published to Trends!');
   };
 
-  const handleReject = (id) => {
-    setPendingNotes(prev => prev.filter(n => n.id !== id));
-    setStats(prev => {
-      const newStats = [...prev];
-      newStats[1].value = Math.max(0, newStats[1].value - 1); // Pending down
-      return newStats;
-    });
-    triggerToast('Note rejected and removed.');
+  const handleReject = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'pendingNotes', id));
+      fetchPendingNotes();
+      triggerToast('Note rejected and removed.');
+    } catch (err) {
+      console.error(err);
+      triggerToast('Failed to reject note.');
+    }
   };
 
   const handleUpload = async (e) => {
@@ -348,7 +364,7 @@ export default function AdminDashboard() {
                         <span className="text-xs text-slate-500">by {note.author}</span>
                       </div>
                       <h3 className="font-bold text-lg">{note.title}</h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{note.snippet}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{note.content.substring(0, 100)}...</p>
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <button 

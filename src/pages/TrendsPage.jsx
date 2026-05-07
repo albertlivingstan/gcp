@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, ThumbsUp, Send, User, Upload, FileText, CheckCircle, Trash2, Mic, Square } from 'lucide-react';
-import localforage from 'localforage';
 import { subjects } from '../data/mockData';
 import LiveChat from '../components/LiveChat';
+import { db, storage } from '../firebase';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 export default function TrendsPage() {
   const [approvedNotes, setApprovedNotes] = useState([]);
@@ -21,30 +23,23 @@ export default function TrendsPage() {
   const [newPost, setNewPost] = useState({ title: '', content: '', subject: 'General', file: null, fileName: '' });
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const savedNotes = await localforage.getItem('approvedNotes');
-        const savedProfile = JSON.parse(localStorage.getItem('studyHubProfile') || 'null');
-        
-        if (!savedNotes || savedNotes.length === 0) {
-          const mockNotes = [
-            { id: 101, subject: 'Machine Learning', title: 'Great Cheatsheet for Neural Networks', content: 'I compiled all the formulas for backpropagation. Hope it helps!', author: 'AI_Student', likes: 24, comments: [{ id: 1, author: 'DataNerd', text: 'This is amazing, thanks!' }] },
-            { id: 102, subject: 'System Software', title: 'Pass 1 vs Pass 2 Assembler', content: 'Detailed diagram explaining the differences.', author: 'CompilerGeek', fileName: 'Assembler_Diagram.pdf', likes: 15, comments: [] }
-          ];
-          setApprovedNotes(mockNotes);
-          await localforage.setItem('approvedNotes', mockNotes);
-        } else {
-          setApprovedNotes(savedNotes);
-        }
-        
-        if (savedProfile) {
-          setUserProfile(savedProfile);
-        }
-      } catch (err) {
-        console.error("Error loading data", err);
-      }
-    };
-    loadData();
+    const savedProfile = JSON.parse(localStorage.getItem('studyHubProfile') || 'null');
+    if (savedProfile) {
+      setUserProfile(savedProfile);
+    }
+
+    const q = query(collection(db, 'approvedNotes'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const notes = [];
+      snapshot.forEach(doc => {
+        notes.push({ id: doc.id, ...doc.data() });
+      });
+      setApprovedNotes(notes);
+    }, (error) => {
+      console.error("Error fetching approved notes", error);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const triggerToast = (msg) => {
@@ -82,24 +77,32 @@ export default function TrendsPage() {
     }
     if (!newPost.title || !newPost.content) return;
 
-    const post = {
-      id: Date.now(),
-      subject: newPost.subject,
-      title: newPost.title,
-      content: newPost.content,
-      author: userProfile.name,
-      fileName: newPost.fileName,
-      fileData: newPost.file,
-      likes: 0,
-      comments: []
-    };
+    try {
+      let fileUrl = null;
+      if (newPost.file) {
+        const fileRef = ref(storage, `trendsFiles/${Date.now()}_${newPost.fileName}`);
+        await uploadString(fileRef, newPost.file, 'data_url');
+        fileUrl = await getDownloadURL(fileRef);
+      }
 
-    const updatedNotes = [post, ...approvedNotes];
-    setApprovedNotes(updatedNotes);
-    await localforage.setItem('approvedNotes', updatedNotes);
-    
-    setNewPost({ title: '', content: '', subject: 'General', file: null, fileName: '' });
-    triggerToast('Note successfully posted!');
+      await addDoc(collection(db, 'approvedNotes'), {
+        subject: newPost.subject,
+        title: newPost.title,
+        content: newPost.content,
+        author: userProfile.name,
+        fileName: newPost.fileName,
+        fileUrl: fileUrl,
+        likes: 0,
+        comments: [],
+        createdAt: new Date().toISOString()
+      });
+      
+      setNewPost({ title: '', content: '', subject: 'General', file: null, fileName: '' });
+      triggerToast('Note successfully posted!');
+    } catch (err) {
+      console.error(err);
+      triggerToast('Failed to post note.');
+    }
   };
 
   const handleChatSubmit = async (e, noteId, customAudio = null) => {
@@ -112,57 +115,62 @@ export default function TrendsPage() {
     const text = chatInputs[noteId];
     if (!customAudio && (!text || !text.trim())) return;
 
-    const newNotes = approvedNotes.map(note => {
-      if (note.id === noteId) {
-        return {
-          ...note,
-          comments: [...(note.comments || []), { 
-            id: Date.now(), 
-            author: userProfile.name, 
-            text: text || '', 
-            audio: customAudio 
-          }]
-        };
+    try {
+      const note = approvedNotes.find(n => n.id === noteId);
+      if (!note) return;
+      
+      let audioUrl = null;
+      if (customAudio) {
+        const audioRef = ref(storage, `audioComments/${Date.now()}.webm`);
+        await uploadString(audioRef, customAudio, 'data_url');
+        audioUrl = await getDownloadURL(audioRef);
       }
-      return note;
-    });
 
-    setApprovedNotes(newNotes);
-    await localforage.setItem('approvedNotes', newNotes);
-    setChatInputs({ ...chatInputs, [noteId]: '' });
+      const newComments = [...(note.comments || []), {
+        id: Date.now().toString(),
+        author: userProfile.name,
+        text: text || '',
+        audioUrl: audioUrl
+      }];
+
+      await updateDoc(doc(db, 'approvedNotes', noteId), { comments: newComments });
+      setChatInputs({ ...chatInputs, [noteId]: '' });
+    } catch (err) {
+      console.error(err);
+      triggerToast('Failed to post comment.');
+    }
   };
 
   const deleteNote = async (noteId) => {
     if (!window.confirm("Delete this entire note?")) return;
-    const newNotes = approvedNotes.filter(n => n.id !== noteId);
-    setApprovedNotes(newNotes);
-    await localforage.setItem('approvedNotes', newNotes);
-    triggerToast('Note deleted.');
+    try {
+      await deleteDoc(doc(db, 'approvedNotes', noteId));
+      triggerToast('Note deleted.');
+    } catch (err) {
+      console.error(err);
+      triggerToast('Failed to delete note.');
+    }
   };
 
   const deleteComment = async (noteId, commentId) => {
-    const newNotes = approvedNotes.map(note => {
-      if (note.id === noteId) {
-        return {
-          ...note,
-          comments: note.comments.filter(c => c.id !== commentId)
-        };
-      }
-      return note;
-    });
-    setApprovedNotes(newNotes);
-    await localforage.setItem('approvedNotes', newNotes);
+    try {
+      const note = approvedNotes.find(n => n.id === noteId);
+      if (!note) return;
+      const newComments = note.comments.filter(c => c.id !== commentId);
+      await updateDoc(doc(db, 'approvedNotes', noteId), { comments: newComments });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleLike = async (noteId) => {
-    const newNotes = approvedNotes.map(note => {
-      if (note.id === noteId) {
-        return { ...note, likes: (note.likes || 0) + 1 };
-      }
-      return note;
-    });
-    setApprovedNotes(newNotes);
-    await localforage.setItem('approvedNotes', newNotes);
+    try {
+      const note = approvedNotes.find(n => n.id === noteId);
+      if (!note) return;
+      await updateDoc(doc(db, 'approvedNotes', noteId), { likes: (note.likes || 0) + 1 });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleDownload = (fileData, fileName) => {
@@ -368,10 +376,10 @@ export default function TrendsPage() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => handleDownload(note.fileData || note.file, note.fileName)}
+                      onClick={() => note.fileUrl ? window.open(note.fileUrl, '_blank') : handleDownload(note.fileData, note.fileName)}
                       className="text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow transition-all"
                     >
-                      Download
+                      {note.fileUrl ? 'View File' : 'Download'}
                     </button>
                   </div>
                 )}
@@ -408,9 +416,9 @@ export default function TrendsPage() {
                           )}
                         </div>
                         {comment.text && <div className="text-sm text-slate-800 dark:text-slate-200">{comment.text}</div>}
-                        {comment.audio && (
+                        {comment.audioUrl && (
                           <div className="mt-2">
-                            <audio controls src={comment.audio} className="h-8 max-w-full" />
+                            <audio controls src={comment.audioUrl} className="h-8 max-w-full" />
                           </div>
                         )}
                       </div>

@@ -5,7 +5,7 @@ import localforage from 'localforage';
 import { subjects, mockPPTs, mockBigQuestions } from '../data/mockData';
 import ChatBox from '../components/ChatBox';
 import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 
 export default function SubjectPage() {
   const { id } = useParams();
@@ -77,19 +77,29 @@ export default function SubjectPage() {
     return <div className="text-center py-20 text-2xl">Subject not found.</div>;
   }
 
-  const handleNoteSubmit = (e) => {
+  const handleNoteSubmit = async (e) => {
     e.preventDefault();
     if (!publicNoteTitle.trim() || !publicNoteContent.trim()) return;
     
-    setSubmittedNotes(prev => [...prev, {
-      id: Date.now(),
+    const newNote = {
       title: publicNoteTitle,
       content: publicNoteContent,
-      status: 'pending' // pending or approved
-    }]);
+      subject: subject.title,
+      status: 'pending',
+      author: 'Student', // In a real app, this would be the logged-in user
+      createdAt: new Date().toISOString()
+    };
     
-    setPublicNoteTitle('');
-    setPublicNoteContent('');
+    try {
+      await addDoc(collection(db, 'pendingNotes'), newNote);
+      setSubmittedNotes(prev => [...prev, { ...newNote, id: Date.now() }]);
+      setPublicNoteTitle('');
+      setPublicNoteContent('');
+      alert("Note submitted for approval!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit note.");
+    }
   };
 
   const toggleQuestionDone = (index) => {

@@ -48,7 +48,7 @@ export default function ChatBox({ subject }) {
       }
       
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         systemInstruction: `You are an expert AI Teacher for the subject: ${subject.title}. Your goal is to help the student learn effectively. Explain complex concepts in simple language, generate structured summaries or multiple-choice quizzes when asked, provide clear accurate answers, and format responses using markdown.`
       });
 

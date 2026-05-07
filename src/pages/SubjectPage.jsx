@@ -30,9 +30,12 @@ export default function SubjectPage() {
           savedPPTs.push({ id: doc.id, ...doc.data() });
         });
         
-        const subjectPpts = savedPPTs.filter(ppt => ppt.subjectId === id);
+        const subjectPpts = savedPPTs
+          .filter(ppt => ppt.subjectId === id)
+          .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+
         if (subjectPpts.length > 0) {
-          setPpts([...subjectPpts, ...basePpts]);
+          setPpts([...basePpts, ...subjectPpts]);
         }
       } catch (err) {
         console.error('Error loading custom PPTs from Firebase', err);

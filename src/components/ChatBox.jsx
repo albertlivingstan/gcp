@@ -2,10 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User as UserIcon, Loader2, Trash2 } from 'lucide-react';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
+let openai = null;
+try {
+  if (import.meta.env.VITE_OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+      dangerouslyAllowBrowser: true
+    });
+  }
+} catch (e) {
+  console.warn("OpenAI API key missing or invalid");
+}
 
 export default function ChatBox({ subject }) {
   const [messages, setMessages] = useState([
@@ -33,6 +40,10 @@ export default function ChatBox({ subject }) {
     setIsLoading(true);
 
     try {
+      if (!openai) {
+        throw new Error("OpenAI is not configured. Missing API Key.");
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
         messages: [

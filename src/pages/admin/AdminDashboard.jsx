@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import localforage from 'localforage';
 import { subjects, mockPPTs } from '../../data/mockData';
 import { Upload, Check, X, BookOpen, FileText, Settings, Users, LayoutDashboard, Plus, CheckCircle, Link } from 'lucide-react';
@@ -24,6 +24,41 @@ export default function AdminDashboard() {
 
   const [uploadForm, setUploadForm] = useState({ subject: subjects[0].id, title: '', file: null, fileName: '', url: '' });
   const [isUploading, setIsUploading] = useState(false);
+  const [adminUploadedPPTs, setAdminUploadedPPTs] = useState([]);
+
+  const fetchAdminPPTs = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'adminPPTs'));
+      const ppts = [];
+      querySnapshot.forEach((doc) => {
+        ppts.push({ id: doc.id, ...doc.data() });
+      });
+      setAdminUploadedPPTs(ppts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    } catch (error) {
+      console.error("Error fetching PPTs", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminPPTs();
+  }, []);
+
+  const handleDeletePPT = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this study material?")) return;
+    try {
+      await deleteDoc(doc(db, 'adminPPTs', id));
+      triggerToast('PPT removed successfully.');
+      fetchAdminPPTs();
+      setStats(prev => {
+        const newStats = [...prev];
+        newStats[0].value = Math.max(0, newStats[0].value - 1);
+        return newStats;
+      });
+    } catch (err) {
+      console.error(err);
+      triggerToast('Failed to delete PPT.');
+    }
+  };
 
   const triggerToast = (message) => {
     setShowToast(message);
@@ -101,6 +136,7 @@ export default function AdminDashboard() {
       
       triggerToast('File uploaded and published successfully!');
       setUploadForm({ subject: subjects[0].id, title: '', file: null, fileName: '', url: '' });
+      fetchAdminPPTs();
       setStats(prev => {
         const newStats = [...prev];
         newStats[0].value += 1; // Total PPTs up
@@ -201,6 +237,7 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'upload' && (
+          <>
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 max-w-2xl">
             <h2 className="text-xl font-bold mb-6">Upload Study Material</h2>
             <form onSubmit={handleUpload} className="space-y-5">
@@ -258,6 +295,37 @@ export default function AdminDashboard() {
               </button>
             </form>
           </div>
+          
+          {/* PPT Viewer / Remover List */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 max-w-2xl mt-8">
+            <h2 className="text-xl font-bold mb-6">Manage Uploaded Material</h2>
+            <div className="space-y-4">
+              {adminUploadedPPTs.length === 0 ? (
+                <p className="text-slate-500 text-sm">No materials uploaded yet.</p>
+              ) : (
+                adminUploadedPPTs.map(ppt => (
+                  <div key={ppt.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-indigo-500" />
+                      <div>
+                        <p className="font-semibold text-sm">{ppt.title}</p>
+                        <p className="text-xs text-slate-500">{subjects.find(s => s.id === ppt.subjectId)?.title || ppt.subjectId}</p>
+                        {ppt.fileName && <p className="text-xs text-slate-400 mt-0.5">{ppt.fileName}</p>}
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => handleDeletePPT(ppt.id)}
+                      className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors"
+                      title="Remove PPT"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
         )}
 
         {activeTab === 'notes' && (

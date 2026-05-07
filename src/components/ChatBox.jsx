@@ -68,8 +68,14 @@ Your goal is to help the student learn effectively.
       });
       setMessages(prev => [...prev, { role: 'assistant', content: response.choices[0].message.content }]);
     } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting to my brain right now." }]);
+      console.error("OpenAI Error:", err);
+      let errorMsg = "Sorry, I'm having trouble connecting to my brain right now.";
+      if (err.message && err.message.includes('401')) {
+        errorMsg = "Error: Invalid API Key. Your OpenAI key may have been revoked by GitHub for security reasons. Please generate a new one.";
+      } else if (err.message) {
+        errorMsg = `Error: ${err.message}`;
+      }
+      setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
     } finally {
       setIsLoading(false);
     }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, MessageCircle, Smile, Mic, Square, Image as ImageIcon, Trash2, Loader2 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { db } from '../firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, limit } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, limit, where } from 'firebase/firestore';
 
 export default function LiveChat({ userProfile, onRequestVerify }) {
   const [messages, setMessages] = useState([]);
@@ -19,7 +19,15 @@ export default function LiveChat({ userProfile, onRequestVerify }) {
 
   useEffect(() => {
     const messagesRef = collection(db, 'messages');
-    const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(50));
+    
+    // Only fetch messages from the last 24 hours
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const q = query(
+      messagesRef, 
+      where('timestamp', '>=', twentyFourHoursAgo),
+      orderBy('timestamp', 'desc'), 
+      limit(50)
+    );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedMessages = [];

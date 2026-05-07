@@ -71,9 +71,7 @@ export const mockPPTs = {
     { id: 2, title: 'Supervised Learning', url: 'https://docs.google.com/presentation/d/e/2PACX-1vT-mock2/embed?start=false&loop=false&delayms=3000' }
   ],
   'devops': [
-    { id: 2, title: 'module-1', url: 'https://docs.google.com/presentation/d/1REWTxo3-_q_Uy3C9bFAxwq9OJLYWG5d8XYcAhm0EOA4/edit?usp=sharing' },
-    { id: 1, title: 'module-2', url: 'https://docs.google.com/presentation/d/1obdzkDt9f5GWNdrSfBe4mQ2t43ZVd_44AumrOYzY6LQ/edit?usp=sharing' },
-
+    { id: 2, title: 'module-1', url: 'https://docs.google.com/presentation/d/1REWTxo3-_q_Uy3C9bFAxwq9OJLYWG5d8XYcAhm0EOA4/edit?usp=sharing' }
   ],
   'cryptography': [
     { id: 4, title: 'Public Key Infrastructure', url: 'https://docs.google.com/presentation/d/e/2PACX-1vT-mock4/embed?start=false&loop=false&delayms=3000' }

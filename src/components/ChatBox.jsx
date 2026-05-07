@@ -16,9 +16,15 @@ try {
 
 export default function ChatBox({ subject }) {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: `Hello! I'm your AI study assistant for ${subject.title}. How can I help you prepare for your exams?` }
+    { role: 'assistant', content: `Hello! I'm your AI Teacher for **${subject.title}**. I can explain concepts simply, generate summaries, create practice quizzes, or answer any doubts you have based on your study materials. How can I help you today?` }
   ]);
   const [input, setInput] = useState('');
+  
+  const quickActions = [
+    "Explain a key concept simply",
+    "Generate a practice quiz",
+    "Summarize the main topics"
+  ];
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
@@ -45,9 +51,17 @@ export default function ChatBox({ subject }) {
       }
       
       const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         messages: [
-          { role: 'system', content: `You are a helpful study assistant for ${subject.title}.` },
+          { 
+            role: 'system', 
+            content: `You are an expert AI Teacher for the subject: ${subject.title}. 
+Your goal is to help the student learn effectively. 
+- Explain complex concepts in simple, easy-to-understand language.
+- When asked, generate structured summaries or interactive multiple-choice quizzes.
+- Provide clear, concise, and accurate answers.
+- Format your responses using markdown for readability (bolding, bullet points, etc.).` 
+          },
           ...messages.map(m => ({ role: m.role, content: m.content })),
           userMessage
         ]
@@ -113,7 +127,20 @@ export default function ChatBox({ subject }) {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-3">
+        {messages.length < 3 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {quickActions.map((action, i) => (
+              <button
+                key={i}
+                onClick={() => setInput(action)}
+                className="text-xs bg-slate-100 hover:bg-indigo-50 dark:bg-slate-700 dark:hover:bg-indigo-900/30 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-600 transition-colors"
+              >
+                {action}
+              </button>
+            ))}
+          </div>
+        )}
         <form onSubmit={handleSend} className="flex gap-2">
           <input
             type="text"

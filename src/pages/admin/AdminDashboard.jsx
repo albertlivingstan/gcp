@@ -7,6 +7,9 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function AdminDashboard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminPin, setAdminPin] = useState('');
+  
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showToast, setShowToast] = useState('');
   
@@ -195,6 +198,42 @@ export default function AdminDashboard() {
       setUploadForm({ ...uploadForm, file: file, fileName: file.name });
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl max-w-sm w-full border border-slate-200 dark:border-slate-700">
+          <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl flex items-center justify-center mb-6 mx-auto">
+            <Settings className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-center mb-2">Admin Security</h2>
+          <p className="text-slate-500 text-center text-sm mb-6">Enter the master passcode to access the dashboard.</p>
+          
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            // Default Passcode is 1234. In a real app, use Firebase Auth.
+            if (adminPin === '1234') {
+              setIsAuthenticated(true);
+            } else {
+              alert("Incorrect Passcode");
+            }
+          }}>
+            <input 
+              type="password" 
+              placeholder="Admin PIN"
+              value={adminPin}
+              onChange={(e) => setAdminPin(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none text-center tracking-[0.5em] font-mono text-lg"
+              autoFocus
+            />
+            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-colors">
+              Access Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col md:flex-row gap-8 animate-in fade-in duration-300 relative">

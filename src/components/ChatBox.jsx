@@ -1,17 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User as UserIcon, Loader2, Trash2 } from 'lucide-react';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-let openai = null;
+let genAI = null;
 try {
-  if (import.meta.env.VITE_OPENAI_API_KEY) {
-    openai = new OpenAI({
-      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-      dangerouslyAllowBrowser: true
-    });
+  if (import.meta.env.VITE_GEMINI_API_KEY) {
+    genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
   }
 } catch (e) {
-  console.warn("OpenAI API key missing or invalid");
+  console.warn("Gemini API key missing or invalid");
 }
 
 export default function ChatBox({ subject }) {
@@ -46,32 +43,31 @@ export default function ChatBox({ subject }) {
     setIsLoading(true);
 
     try {
-      if (!openai) {
-        throw new Error("OpenAI is not configured. Missing API Key.");
+      if (!genAI) {
+        throw new Error("Gemini AI is not configured. Missing API Key.");
       }
       
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { 
-            role: 'system', 
-            content: `You are an expert AI Teacher for the subject: ${subject.title}. 
-Your goal is to help the student learn effectively. 
-- Explain complex concepts in simple, easy-to-understand language.
-- When asked, generate structured summaries or interactive multiple-choice quizzes.
-- Provide clear, concise, and accurate answers.
-- Format your responses using markdown for readability (bolding, bullet points, etc.).` 
-          },
-          ...messages.map(m => ({ role: m.role, content: m.content })),
-          userMessage
-        ]
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        systemInstruction: `You are an expert AI Teacher for the subject: ${subject.title}. Your goal is to help the student learn effectively. Explain complex concepts in simple language, generate structured summaries or multiple-choice quizzes when asked, provide clear accurate answers, and format responses using markdown.`
       });
-      setMessages(prev => [...prev, { role: 'assistant', content: response.choices[0].message.content }]);
+
+      // Map existing messages to Gemini format (skip the first greeting message as history)
+      const history = messages.slice(1).map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      }));
+
+      const chat = model.startChat({ history });
+      const result = await chat.sendMessage(input);
+      const responseText = result.response.text();
+
+      setMessages(prev => [...prev, { role: 'assistant', content: responseText }]);
     } catch (err) {
-      console.error("OpenAI Error:", err);
+      console.error("Gemini Error:", err);
       let errorMsg = "Sorry, I'm having trouble connecting to my brain right now.";
-      if (err.message && err.message.includes('401')) {
-        errorMsg = "Error: Invalid API Key. Your OpenAI key may have been revoked by GitHub for security reasons. Please generate a new one.";
+      if (err.message && err.message.includes('API key not valid')) {
+        errorMsg = "Error: Invalid API Key. Please verify your Google Gemini API key.";
       } else if (err.message) {
         errorMsg = `Error: ${err.message}`;
       }

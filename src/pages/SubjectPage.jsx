@@ -6,10 +6,32 @@ import { subjects, mockPPTs, mockBigQuestions } from '../data/mockData';
 import ChatBox from '../components/ChatBox';
 import { db } from '../firebase';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
+import confetti from 'canvas-confetti';
 
 export default function SubjectPage() {
   const { id } = useParams();
-  const subject = subjects.find(s => s.id === id);
+  const [firebaseSubjects, setFirebaseSubjects] = useState([]);
+  const [isLoadingSubject, setIsLoadingSubject] = useState(true);
+
+  useEffect(() => {
+    const fetchSub = async () => {
+      try {
+        const qs = await getDocs(collection(db, 'subjects'));
+        const subs = [];
+        qs.forEach(d => subs.push({id: d.id, ...d.data()}));
+        setFirebaseSubjects(subs);
+      } catch(err){
+        console.error(err);
+      } finally {
+        setIsLoadingSubject(false);
+      }
+    };
+    fetchSub();
+  }, [id]);
+
+  const allSubjects = [...subjects, ...firebaseSubjects];
+  const subject = allSubjects.find(s => s.id === id);
+
   const basePpts = mockPPTs[id] || [];
   const bigQuestions = mockBigQuestions[id] || [];
   
@@ -76,8 +98,17 @@ export default function SubjectPage() {
     return url;
   };
 
+  if (isLoadingSubject) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
+        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <p className="text-xl font-medium text-slate-600 dark:text-slate-400">Loading Subject Data...</p>
+      </div>
+    );
+  }
+
   if (!subject) {
-    return <div className="text-center py-20 text-2xl">Subject not found.</div>;
+    return <div className="text-center py-20 text-2xl font-bold text-slate-600 dark:text-slate-400">Subject not found.</div>;
   }
 
   const handleNoteSubmit = async (e) => {
@@ -111,6 +142,12 @@ export default function SubjectPage() {
       newDone.delete(index);
     } else {
       newDone.add(index);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#4f46e5', '#8b5cf6', '#ec4899']
+      });
     }
     setDoneQuestions(newDone);
   };

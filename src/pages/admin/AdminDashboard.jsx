@@ -3,7 +3,7 @@ import localforage from 'localforage';
 import { subjects, mockPPTs } from '../../data/mockData';
 import { Upload, Check, X, BookOpen, FileText, Settings, Users, LayoutDashboard, Plus, CheckCircle, Link, Edit, Save } from 'lucide-react';
 import { db, storage } from '../../firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function AdminDashboard() {
@@ -41,20 +41,63 @@ export default function AdminDashboard() {
     }
   };
 
+  const [firebaseSubjects, setFirebaseSubjects] = useState([]);
+  const fetchSubjects = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'subjects'));
+      const subs = [];
+      querySnapshot.forEach((doc) => {
+        subs.push({ id: doc.id, ...doc.data() });
+      });
+      setFirebaseSubjects(subs);
+    } catch (error) {
+      console.error("Error fetching subjects", error);
+    }
+  };
+
+  const allSubjects = [...subjects, ...firebaseSubjects];
+
   useEffect(() => {
     fetchAdminPPTs();
     fetchPendingNotes();
+    fetchSubjects();
   }, []);
 
-  const [uploadForm, setUploadForm] = useState({ subject: subjects[0].id, title: '', file: null, fileName: '', url: '' });
+  const [uploadForm, setUploadForm] = useState({ subject: subjects[0]?.id || '', title: '', file: null, fileName: '', url: '' });
   const [isUploading, setIsUploading] = useState(false);
   const [adminUploadedPPTs, setAdminUploadedPPTs] = useState([]);
   const [editingPptId, setEditingPptId] = useState(null);
   const [editForm, setEditForm] = useState({ title: '', subjectId: '', url: '' });
+  
+  const [showAddSubject, setShowAddSubject] = useState(false);
+  const [newSubjectForm, setNewSubjectForm] = useState({ title: '', description: '', color: 'bg-blue-500', icon: 'Cpu' });
 
   const handleEditClick = (ppt) => {
     setEditingPptId(ppt.id);
     setEditForm({ title: ppt.title, subjectId: ppt.subjectId, url: ppt.url || '' });
+  };
+
+  const handleAddSubject = async (e) => {
+    e.preventDefault();
+    if (!newSubjectForm.title || !newSubjectForm.description) return;
+    
+    try {
+      const subjectId = newSubjectForm.title.toLowerCase().replace(/\s+/g, '-');
+      await setDoc(doc(db, 'subjects', subjectId), {
+        title: newSubjectForm.title,
+        description: newSubjectForm.description,
+        color: newSubjectForm.color,
+        icon: newSubjectForm.icon,
+        createdAt: new Date().toISOString()
+      });
+      triggerToast('Subject added successfully!');
+      setShowAddSubject(false);
+      setNewSubjectForm({ title: '', description: '', color: 'bg-blue-500', icon: 'Cpu' });
+      fetchSubjects();
+    } catch (err) {
+      console.error(err);
+      triggerToast('Failed to add subject.');
+    }
   };
 
   const handleUpdatePPT = async (id) => {
@@ -326,7 +369,7 @@ export default function AdminDashboard() {
                   onChange={e => setUploadForm({...uploadForm, subject: e.target.value})}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
-                  {subjects.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                  {allSubjects.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                 </select>
               </div>
               <div>
@@ -396,7 +439,7 @@ export default function AdminDashboard() {
                           onChange={(e) => setEditForm({...editForm, subjectId: e.target.value})} 
                           className="w-full px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
                         >
-                          {subjects.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                          {allSubjects.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                         </select>
                         <input 
                           type="url" 
@@ -420,7 +463,7 @@ export default function AdminDashboard() {
                           <FileText className="w-5 h-5 text-indigo-500" />
                           <div>
                             <p className="font-semibold text-sm">{ppt.title}</p>
-                            <p className="text-xs text-slate-500">{subjects.find(s => s.id === ppt.subjectId)?.title || ppt.subjectId}</p>
+                            <p className="text-xs text-slate-500">{allSubjects.find(s => s.id === ppt.subjectId)?.title || ppt.subjectId}</p>
                             {ppt.url && <a href={ppt.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:underline mt-0.5 inline-block truncate max-w-[200px] sm:max-w-xs">{ppt.url}</a>}
                             {ppt.fileName && !ppt.url && <p className="text-xs text-slate-400 mt-0.5">{ppt.fileName}</p>}
                           </div>
@@ -498,18 +541,77 @@ export default function AdminDashboard() {
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Manage Subjects</h2>
-              <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                <Plus className="w-4 h-4" /> Add Subject
+              <button 
+                onClick={() => setShowAddSubject(!showAddSubject)}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                {showAddSubject ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {showAddSubject ? 'Cancel' : 'Add Subject'}
               </button>
             </div>
-            <div className="divide-y divide-slate-200 dark:divide-slate-700">
-              {subjects.map(s => (
-                <div key={s.id} className="py-4 flex justify-between items-center">
+
+            {showAddSubject && (
+              <form onSubmit={handleAddSubject} className="mb-8 bg-slate-50 dark:bg-slate-900/50 p-5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
+                <h3 className="font-bold mb-2">Create New Subject</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h3 className="font-semibold">{s.title}</h3>
-                    <p className="text-sm text-slate-500">{s.description.substring(0, 60)}...</p>
+                    <label className="block text-sm font-medium mb-1">Title</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newSubjectForm.title}
+                      onChange={e => setNewSubjectForm({...newSubjectForm, title: e.target.value})}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                    />
                   </div>
-                  <button className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-medium">Edit</button>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Color Theme</label>
+                    <select 
+                      value={newSubjectForm.color}
+                      onChange={e => setNewSubjectForm({...newSubjectForm, color: e.target.value})}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="bg-blue-500">Blue</option>
+                      <option value="bg-purple-500">Purple</option>
+                      <option value="bg-green-500">Green</option>
+                      <option value="bg-red-500">Red</option>
+                      <option value="bg-orange-500">Orange</option>
+                      <option value="bg-teal-500">Teal</option>
+                      <option value="bg-pink-500">Pink</option>
+                      <option value="bg-indigo-500">Indigo</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-1">Description</label>
+                    <textarea 
+                      required
+                      rows="2"
+                      value={newSubjectForm.description}
+                      onChange={e => setNewSubjectForm({...newSubjectForm, description: e.target.value})}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                    ></textarea>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                    Save Subject
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
+              {allSubjects.map(s => (
+                <div key={s.id} className="py-4 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${s.color}`}></div>
+                    <div>
+                      <h3 className="font-semibold">{s.title}</h3>
+                      <p className="text-sm text-slate-500">{s.description.substring(0, 60)}...</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded">ID: {s.id}</span>
+                  </div>
                 </div>
               ))}
             </div>

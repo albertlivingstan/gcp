@@ -6,9 +6,13 @@ import SubjectPage from './pages/SubjectPage';
 import TrendsPage from './pages/TrendsPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import SplashScreen from './components/SplashScreen';
+import InstallPopup from './components/InstallPopup';
+import MobileBottomNav from './components/MobileBottomNav';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     if (darkMode) {
@@ -20,15 +24,18 @@ function App() {
 
   return (
     <Router>
+      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+      
+      {!showSplash && (
       <div className={`min-h-screen transition-colors duration-200 ${darkMode ? 'dark bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
+        <InstallPopup />
+        
         <nav className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
               <div className="flex items-center">
                 <Link to="/" className="flex items-center gap-2 group">
-                  <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center group-hover:bg-indigo-500 transition-colors">
-                    <BookOpen className="text-white w-5 h-5" />
-                  </div>
+                  <img src="/image.png" alt="StudyHub Logo" className="w-10 h-10 object-contain group-hover:scale-105 transition-transform drop-shadow-md" />
                   <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">StudyHub</span>
                 </Link>
               </div>
@@ -60,7 +67,7 @@ function App() {
           </div>
         </nav>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/subject/:id" element={<SubjectPage />} />
@@ -69,7 +76,10 @@ function App() {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
           </Routes>
         </main>
+
+        <MobileBottomNav />
       </div>
+      )}
     </Router>
   );
 }

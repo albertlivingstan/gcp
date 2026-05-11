@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Cpu, Brain, Infinity as InfinityIcon, Lock, Network, MessageSquare, ArrowRight, BookOpen } from 'lucide-react';
+import { Cpu, Brain, Infinity as InfinityIcon, Lock, Network, MessageSquare, ArrowRight, BookOpen, Globe, Database, Code, Shield } from 'lucide-react';
 import { subjects } from '../data/mockData';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 const iconMap = {
   Cpu: <Cpu className="w-8 h-8" />,
@@ -9,10 +11,34 @@ const iconMap = {
   Infinity: <InfinityIcon className="w-8 h-8" />,
   Lock: <Lock className="w-8 h-8" />,
   Network: <Network className="w-8 h-8" />,
-  MessageSquare: <MessageSquare className="w-8 h-8" />
+  MessageSquare: <MessageSquare className="w-8 h-8" />,
+  Globe: <Globe className="w-8 h-8" />,
+  Database: <Database className="w-8 h-8" />,
+  Code: <Code className="w-8 h-8" />,
+  Shield: <Shield className="w-8 h-8" />
 };
 
 export default function Home() {
+  const [firebaseSubjects, setFirebaseSubjects] = useState([]);
+
+  useEffect(() => {
+    const fetchSubs = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'subjects'));
+        const subs = [];
+        querySnapshot.forEach((doc) => {
+          subs.push({ id: doc.id, ...doc.data() });
+        });
+        setFirebaseSubjects(subs);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchSubs();
+  }, []);
+
+  const allSubjects = [...subjects, ...firebaseSubjects];
+
   return (
     <div className="space-y-12 animate-in fade-in duration-500">
       <section className="text-center space-y-4 py-12">
@@ -26,7 +52,7 @@ export default function Home() {
 
       <section>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subjects.map((subject) => (
+          {allSubjects.map((subject) => (
             <Link 
               key={subject.id} 
               to={`/subject/${subject.id}`}

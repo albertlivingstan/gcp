@@ -74,13 +74,13 @@ export const mockPPTs = {
     { id: 2, title: 'module-1', url: 'https://docs.google.com/presentation/d/1REWTxo3-_q_Uy3C9bFAxwq9OJLYWG5d8XYcAhm0EOA4/edit?usp=sharing' }
   ],
   'cryptography': [
-    { id: 4, title: 'Public Key Infrastructure', url: 'https://docs.google.com/presentation/d/e/2PACX-1vT-mock4/embed?start=false&loop=false&delayms=3000' }
+
   ],
   'distributed-computing': [
-    { id: 5, title: 'MapReduce & Hadoop', url: 'https://docs.google.com/presentation/d/e/2PACX-1vT-mock5/embed?start=false&loop=false&delayms=3000' }
+
   ],
   'nlp': [
-    { id: 6, title: 'Transformers & Attention', url: 'https://docs.google.com/presentation/d/e/2PACX-1vT-mock6/embed?start=false&loop=false&delayms=3000' }
+
   ]
 };
 

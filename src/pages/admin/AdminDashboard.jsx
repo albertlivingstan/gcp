@@ -57,6 +57,19 @@ export default function AdminDashboard() {
 
   const allSubjects = [...subjects, ...firebaseSubjects];
 
+  const fetchAdminPPTs = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'adminPPTs'));
+      const ppts = [];
+      querySnapshot.forEach((doc) => {
+        ppts.push({ id: doc.id, ...doc.data() });
+      });
+      setAdminUploadedPPTs(ppts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    } catch (error) {
+      console.error("Error fetching PPTs", error);
+    }
+  };
+
   useEffect(() => {
     fetchAdminPPTs();
     fetchPendingNotes();
@@ -116,18 +129,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchAdminPPTs = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'adminPPTs'));
-      const ppts = [];
-      querySnapshot.forEach((doc) => {
-        ppts.push({ id: doc.id, ...doc.data() });
-      });
-      setAdminUploadedPPTs(ppts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-    } catch (error) {
-      console.error("Error fetching PPTs", error);
-    }
-  };
+
 
   useEffect(() => {
     // Moved to the fetchPendingNotes above to fetch both
@@ -204,7 +206,8 @@ export default function AdminDashboard() {
       let fileUrl = uploadForm.url || '';
       
       if (uploadForm.file) {
-        const fileRef = ref(storage, `adminPPTs/${Date.now()}_${uploadForm.file.name}`);
+        const timestamp = new Date().getTime();
+        const fileRef = ref(storage, `adminPPTs/${timestamp}_${uploadForm.file.name}`);
         await uploadBytes(fileRef, uploadForm.file);
         fileUrl = await getDownloadURL(fileRef);
       }

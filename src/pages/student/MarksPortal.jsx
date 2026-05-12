@@ -1,6 +1,6 @@
-import React from 'react';
+
 import { motion } from 'framer-motion';
-import { FileText, TrendingUp, AlertTriangle, CheckCircle, Award } from 'lucide-react';
+import { FileText, TrendingUp, AlertTriangle, CheckCircle, BookOpen } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 

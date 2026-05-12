@@ -1,10 +1,10 @@
-import React from 'react';
+
 import { motion } from 'framer-motion';
-import { Users, Upload, LayoutDashboard, Plus, Settings } from 'lucide-react';
+import { Users, Upload, Plus, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function TeacherDashboard() {
-  const { currentUser, userRole } = useAuth();
+  const { userRole } = useAuth();
 
   if (userRole !== 'teacher' && userRole !== 'admin') {
     return (

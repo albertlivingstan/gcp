@@ -41,6 +41,24 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ],
+        screenshots: [
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'StudyHub Desktop View'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'StudyHub Mobile View'
+          }
+        ],
+        prefer_related_applications: false,
+        related_applications: [],
         shortcuts: [
           {
             name: 'Trending Subjects',

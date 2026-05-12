@@ -13,7 +13,8 @@ import {
   X,
   User,
   Bot,
-  LogOut
+  LogOut,
+  ArrowLeft
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../context/AuthContext';
@@ -37,6 +38,9 @@ export default function SmartHubLayout({ children }) {
       await loginWithGoogle();
     } catch (err) {
       console.error(err);
+      if (err.message && !err.message.includes("closed by user")) {
+        alert("Login failed: " + err.message);
+      }
     }
   };
 
@@ -86,7 +90,7 @@ export default function SmartHubLayout({ children }) {
               <BookOpen className="text-white w-6 h-6" />
             </div>
             <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
-              Smart Hub
+              Student Hub
             </span>
           </motion.div>
           <button 
@@ -154,19 +158,25 @@ export default function SmartHubLayout({ children }) {
               </Link>
             </div>
           )}
+
+          <div className="pt-4 mt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+            <Link 
+              to="/"
+              className={cn(
+                "flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300 relative group overflow-hidden text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+              )}
+            >
+              <ArrowLeft className="w-6 h-6 z-10 shrink-0" strokeWidth={2} />
+              {sidebarOpen && <span className="z-10 whitespace-nowrap">Back to Home</span>}
+            </Link>
+          </div>
         </nav>
 
         <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/50">
-          <Link to="/settings" className={cn(
-            "flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/50 mb-2",
-          )}>
-            <Settings className="w-6 h-6 shrink-0" />
-            {sidebarOpen && <span className="whitespace-nowrap">Settings</span>}
-          </Link>
           
           {currentUser ? (
             <div className="flex items-center justify-between group relative px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-2xl hover:ring-2 ring-indigo-500/20 transition-all">
-              <div className="flex items-center gap-3 cursor-pointer">
+              <div className="flex items-center gap-3 cursor-pointer overflow-hidden">
                 <img 
                   src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.displayName}`} 
                   alt="Avatar" 
@@ -182,7 +192,7 @@ export default function SmartHubLayout({ children }) {
               {sidebarOpen && (
                 <button 
                   onClick={handleLogout}
-                  className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors absolute right-2 opacity-0 group-hover:opacity-100"
+                  className="p-2 text-rose-500 bg-white dark:bg-slate-900 shadow-sm hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors absolute right-2 opacity-0 group-hover:opacity-100"
                   title="Logout"
                 >
                   <LogOut className="w-4 h-4" />
@@ -195,7 +205,7 @@ export default function SmartHubLayout({ children }) {
               className="w-full flex items-center justify-center gap-2 px-3 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-colors font-semibold"
             >
               <User className="w-5 h-5" />
-              {sidebarOpen && <span>Sign In</span>}
+              {sidebarOpen && <span>Sign In (@karunya)</span>}
             </button>
           )}
         </div>
@@ -228,10 +238,12 @@ export default function SmartHubLayout({ children }) {
               <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900"></span>
             </button>
             
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-sm font-semibold border border-amber-200 dark:border-amber-500/20">
-              <span>🔥</span>
-              <span>5 Day Streak</span>
-            </div>
+            {currentUser && (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-sm font-semibold border border-amber-200 dark:border-amber-500/20">
+                <span>🔥</span>
+                <span>5 Day Streak</span>
+              </div>
+            )}
           </div>
         </header>
 

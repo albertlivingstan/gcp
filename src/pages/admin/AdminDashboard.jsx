@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import localforage from 'localforage';
 import { subjects, mockPPTs } from '../../data/mockData';
-import { Upload, Check, X, BookOpen, FileText, Settings, Users, LayoutDashboard, Plus, CheckCircle, Link, Edit, Save } from 'lucide-react';
+import { Upload, Check, X, BookOpen, FileText, Settings, Users, LayoutDashboard, Plus, CheckCircle, Link, Edit, Save, PlaySquare, PlayCircle, Video, ListVideo } from 'lucide-react';
 import { db, storage } from '../../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -13,10 +13,12 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showToast, setShowToast] = useState('');
   
+  const [adminVideos, setAdminVideos] = useState([]);
+  
   const [stats, setStats] = useState([
-    { label: 'Total PPTs Uploaded', value: 24, icon: BookOpen, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/50' },
-    { label: 'Pending Notes', value: 8, icon: FileText, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/50' },
-    { label: 'Approved Notes', value: 156, icon: Check, color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/50' },
+    { label: 'Total PPTs Uploaded', value: 0, icon: BookOpen, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/50' },
+    { label: 'Pending Notes', value: 0, icon: FileText, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/50' },
+    { label: 'Total Videos', value: 0, icon: PlaySquare, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/50' },
     { label: 'Total Students', value: 1042, icon: Users, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/50' },
   ]);
 
@@ -65,13 +67,39 @@ export default function AdminDashboard() {
         ppts.push({ id: doc.id, ...doc.data() });
       });
       setAdminUploadedPPTs(ppts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      
+      setStats(prev => {
+        const newStats = [...prev];
+        newStats[0].value = ppts.length;
+        return newStats;
+      });
     } catch (error) {
       console.error("Error fetching PPTs", error);
     }
   };
 
+  const fetchAdminVideos = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'adminVideos'));
+      const vids = [];
+      querySnapshot.forEach((doc) => {
+        vids.push({ id: doc.id, ...doc.data() });
+      });
+      setAdminVideos(vids.sort((a, b) => (a.order || 0) - (b.order || 0)));
+      
+      setStats(prev => {
+        const newStats = [...prev];
+        newStats[2].value = vids.length;
+        return newStats;
+      });
+    } catch (error) {
+      console.error("Error fetching videos", error);
+    }
+  };
+
   useEffect(() => {
     fetchAdminPPTs();
+    fetchAdminVideos();
     fetchPendingNotes();
     fetchSubjects();
   }, []);
@@ -82,6 +110,11 @@ export default function AdminDashboard() {
   const [editingPptId, setEditingPptId] = useState(null);
   const [editForm, setEditForm] = useState({ title: '', subjectId: '', url: '' });
   
+  const [videoForm, setVideoForm] = useState({ title: '', subjectId: subjects[0]?.id || '', unit: '', description: '', youtubeUrl: '', tags: '', difficulty: 'Medium', duration: '', order: 0 });
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [editingVideoId, setEditingVideoId] = useState(null);
+  const [videoSearchTerm, setVideoSearchTerm] = useState('');
+
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectForm, setNewSubjectForm] = useState({ title: '', description: '', color: 'bg-blue-500', icon: 'Cpu' });
 
@@ -110,6 +143,86 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error(err);
       triggerToast('Failed to add subject.');
+    }
+  };
+
+  const extractYouTubeId = (url) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const handleVideoSubmit = async (e) => {
+    e.preventDefault();
+    if (!videoForm.title || !videoForm.youtubeUrl) {
+      triggerToast('Title and YouTube URL are required.');
+      return;
+    }
+    
+    setIsUploadingVideo(true);
+    try {
+      const videoId = extractYouTubeId(videoForm.youtubeUrl);
+      const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '';
+
+      const videoData = {
+        title: videoForm.title,
+        subjectId: videoForm.subjectId,
+        unit: videoForm.unit,
+        description: videoForm.description,
+        youtubeUrl: videoForm.youtubeUrl,
+        youtubeId: videoId,
+        thumbnailUrl: thumbnailUrl,
+        tags: typeof videoForm.tags === 'string' ? videoForm.tags.split(',').map(t => t.trim()).filter(Boolean) : videoForm.tags,
+        difficulty: videoForm.difficulty,
+        duration: videoForm.duration,
+        order: Number(videoForm.order)
+      };
+
+      if (editingVideoId) {
+        await updateDoc(doc(db, 'adminVideos', editingVideoId), videoData);
+        triggerToast('Video updated successfully!');
+      } else {
+        videoData.createdAt = new Date().toISOString();
+        await addDoc(collection(db, 'adminVideos'), videoData);
+        triggerToast('Video added successfully!');
+      }
+      
+      setVideoForm({ title: '', subjectId: videoForm.subjectId, unit: '', description: '', youtubeUrl: '', tags: '', difficulty: 'Medium', duration: '', order: 0 });
+      setEditingVideoId(null);
+      fetchAdminVideos();
+    } catch (err) {
+      console.error(err);
+      triggerToast(`Failed to ${editingVideoId ? 'update' : 'add'} video.`);
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  };
+
+  const handleEditVideoClick = (video) => {
+    setEditingVideoId(video.id);
+    setVideoForm({
+      title: video.title,
+      subjectId: video.subjectId,
+      unit: video.unit || '',
+      description: video.description || '',
+      youtubeUrl: video.youtubeUrl || '',
+      tags: video.tags ? video.tags.join(', ') : '',
+      difficulty: video.difficulty || 'Medium',
+      duration: video.duration || '',
+      order: video.order || 0
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteVideo = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this video?")) return;
+    try {
+      await deleteDoc(doc(db, 'adminVideos', id));
+      triggerToast('Video removed successfully.');
+      fetchAdminVideos();
+    } catch (err) {
+      console.error(err);
+      triggerToast('Failed to delete video.');
     }
   };
 
@@ -309,6 +422,12 @@ export default function AdminDashboard() {
               <Upload className="w-5 h-5" /> Upload PPTs
             </button>
             <button 
+              onClick={() => setActiveTab('videos')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'videos' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+            >
+              <PlaySquare className="w-5 h-5" /> Manage Videos
+            </button>
+            <button 
               onClick={() => setActiveTab('notes')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'notes' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
             >
@@ -495,6 +614,194 @@ export default function AdminDashboard() {
             </div>
           </div>
         </>
+        )}
+
+        {activeTab === 'videos' && (
+          <>
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 max-w-3xl">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                <PlaySquare className="text-red-500 w-6 h-6" /> 
+                {editingVideoId ? 'Edit YouTube Explanation' : 'Add YouTube Explanation'}
+              </h2>
+              <form onSubmit={handleVideoSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Subject</label>
+                    <select 
+                      value={videoForm.subjectId}
+                      onChange={e => setVideoForm({...videoForm, subjectId: e.target.value})}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="">Select Subject...</option>
+                      {allSubjects.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Unit / Topic</label>
+                    <input 
+                      type="text" 
+                      value={videoForm.unit}
+                      onChange={e => setVideoForm({...videoForm, unit: e.target.value})}
+                      placeholder="e.g. Unit 1: Basics" 
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Video Title</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={videoForm.title}
+                    onChange={e => setVideoForm({...videoForm, title: e.target.value})}
+                    placeholder="e.g. Intro to Operating Systems" 
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">YouTube URL</label>
+                  <input 
+                    type="url" 
+                    required
+                    value={videoForm.youtubeUrl}
+                    onChange={e => setVideoForm({...videoForm, youtubeUrl: e.target.value})}
+                    placeholder="https://www.youtube.com/watch?v=..." 
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description / Notes Summary</label>
+                  <textarea 
+                    rows="3"
+                    value={videoForm.description}
+                    onChange={e => setVideoForm({...videoForm, description: e.target.value})}
+                    placeholder="Brief overview of what the video covers..."
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                  ></textarea>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-1">Tags (comma separated)</label>
+                    <input 
+                      type="text" 
+                      value={videoForm.tags}
+                      onChange={e => setVideoForm({...videoForm, tags: e.target.value})}
+                      placeholder="e.g. devops, basics, exam" 
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Difficulty</label>
+                    <select 
+                      value={videoForm.difficulty}
+                      onChange={e => setVideoForm({...videoForm, difficulty: e.target.value})}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Duration (min)</label>
+                    <input 
+                      type="text" 
+                      value={videoForm.duration}
+                      onChange={e => setVideoForm({...videoForm, duration: e.target.value})}
+                      placeholder="e.g. 15:30" 
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <button type="submit" disabled={isUploadingVideo} className="bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white px-6 py-2.5 rounded-lg font-medium transition-colors w-full md:w-auto flex items-center gap-2 justify-center">
+                    {editingVideoId ? <Save className="w-5 h-5" /> : <ListVideo className="w-5 h-5" />} 
+                    {isUploadingVideo ? (editingVideoId ? 'Updating...' : 'Publishing...') : (editingVideoId ? 'Update Video' : 'Publish Video')}
+                  </button>
+                  {editingVideoId && (
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setEditingVideoId(null);
+                        setVideoForm({ title: '', subjectId: subjects[0]?.id || '', unit: '', description: '', youtubeUrl: '', tags: '', difficulty: 'Medium', duration: '', order: 0 });
+                      }}
+                      className="px-6 py-2.5 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 max-w-4xl mt-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                <h2 className="text-xl font-bold">Manage Video Explanations</h2>
+                <input 
+                  type="text" 
+                  placeholder="Search videos..."
+                  value={videoSearchTerm}
+                  onChange={e => setVideoSearchTerm(e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm w-full sm:w-64"
+                />
+              </div>
+              <div className="space-y-4">
+                {adminVideos.filter(v => 
+                  v.title.toLowerCase().includes(videoSearchTerm.toLowerCase()) || 
+                  (allSubjects.find(s => s.id === v.subjectId)?.title || '').toLowerCase().includes(videoSearchTerm.toLowerCase())
+                ).length === 0 ? (
+                  <p className="text-slate-500 text-sm">No videos found.</p>
+                ) : (
+                  adminVideos
+                  .filter(v => 
+                    v.title.toLowerCase().includes(videoSearchTerm.toLowerCase()) || 
+                    (allSubjects.find(s => s.id === v.subjectId)?.title || '').toLowerCase().includes(videoSearchTerm.toLowerCase())
+                  )
+                  .map(video => (
+                    <div key={video.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg gap-4 bg-slate-50 dark:bg-slate-900/30">
+                      <div className="flex gap-4 items-center">
+                        <div className="relative w-32 h-20 rounded-lg overflow-hidden shrink-0 bg-slate-200 dark:bg-slate-800">
+                          {video.thumbnailUrl ? (
+                            <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <PlayCircle className="w-8 h-8 text-slate-400" />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-slate-900 dark:text-white line-clamp-1">{video.title}</h3>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 rounded font-medium">{allSubjects.find(s => s.id === video.subjectId)?.title || video.subjectId}</span>
+                            {video.unit && <span className="text-xs text-slate-500 font-medium">{video.unit}</span>}
+                            {video.difficulty && <span className="text-xs text-slate-500 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded">{video.difficulty}</span>}
+                          </div>
+                          <a href={video.youtubeUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline mt-1.5 inline-block">Watch on YouTube</a>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button 
+                          onClick={() => handleEditVideoClick(video)}
+                          className="text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-lg transition-colors"
+                          title="Edit Video"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteVideo(video.id)}
+                          className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors"
+                          title="Remove Video"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
         )}
 
         {activeTab === 'notes' && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, PenTool, HelpCircle, Users, Download, Bookmark, CheckCircle2, Upload, FileText } from 'lucide-react';
+import { ArrowLeft, BookOpen, PenTool, HelpCircle, Users, Download, Bookmark, CheckCircle2, Upload, FileText, PlaySquare, PlayCircle, Clock, ListVideo, CheckCircle } from 'lucide-react';
 import localforage from 'localforage';
 import { subjects, mockPPTs, mockBigQuestions } from '../data/mockData';
 import ChatBox from '../components/ChatBox';
@@ -35,20 +35,23 @@ export default function SubjectPage() {
   const basePpts = mockPPTs[id] || [];
   const bigQuestions = mockBigQuestions[id] || [];
   
-  const [activeTab, setActiveTab] = useState('ppt');
+  const [activeTab, setActiveTab] = useState('videos');
   const [personalNote, setPersonalNote] = useState('');
   const [publicNoteTitle, setPublicNoteTitle] = useState('');
   const [publicNoteContent, setPublicNoteContent] = useState('');
   const [submittedNotes, setSubmittedNotes] = useState([]);
   const [doneQuestions, setDoneQuestions] = useState(new Set());
   const [ppts, setPpts] = useState(basePpts);
+  const [videos, setVideos] = useState([]);
+  const [currentVideo, setCurrentVideo] = useState(null);
+  const [completedVideos, setCompletedVideos] = useState(new Set());
 
   useEffect(() => {
-    const loadCustomPPTs = async () => {
+    const loadCustomData = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'adminPPTs'));
+        const pptSnapshot = await getDocs(collection(db, 'adminPPTs'));
         const savedPPTs = [];
-        querySnapshot.forEach((doc) => {
+        pptSnapshot.forEach((doc) => {
           savedPPTs.push({ id: doc.id, ...doc.data() });
         });
         
@@ -59,12 +62,28 @@ export default function SubjectPage() {
         if (subjectPpts.length > 0) {
           setPpts([...basePpts, ...subjectPpts]);
         }
+
+        const videoSnapshot = await getDocs(collection(db, 'adminVideos'));
+        const savedVideos = [];
+        videoSnapshot.forEach((doc) => {
+          savedVideos.push({ id: doc.id, ...doc.data() });
+        });
+
+        const subjectVideos = savedVideos
+          .filter(v => v.subjectId === id)
+          .sort((a, b) => (a.order || 0) - (b.order || 0));
+        
+        setVideos(subjectVideos);
+        if (subjectVideos.length > 0 && !currentVideo) {
+          setCurrentVideo(subjectVideos[0]);
+        }
+
       } catch (err) {
-        console.error('Error loading custom PPTs from Firebase', err);
+        console.error('Error loading custom data from Firebase', err);
       }
     };
-    loadCustomPPTs();
-  }, [id]);
+    loadCustomData();
+  }, [id, basePpts]);
 
   const handleDownload = (fileData, fileName) => {
     if (!fileData) return;
@@ -152,6 +171,22 @@ export default function SubjectPage() {
     setDoneQuestions(newDone);
   };
 
+  const toggleVideoDone = (videoId) => {
+    const newDone = new Set(completedVideos);
+    if (newDone.has(videoId)) {
+      newDone.delete(videoId);
+    } else {
+      newDone.add(videoId);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#ef4444', '#f59e0b', '#3b82f6']
+      });
+    }
+    setCompletedVideos(newDone);
+  };
+
   return (
     <div className="animate-in fade-in duration-500 space-y-6">
       <div className="flex items-center gap-4">
@@ -179,10 +214,10 @@ export default function SubjectPage() {
               <BookOpen className="w-4 h-4" /> PPTs
             </button>
             <button 
-              onClick={() => setActiveTab('questions')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'questions' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+              onClick={() => setActiveTab('videos')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'videos' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
             >
-              <HelpCircle className="w-4 h-4" /> Big Questions
+              <PlaySquare className="w-4 h-4 text-red-500" /> YouTube Explanations
             </button>
             <button 
               onClick={() => setActiveTab('notes')}
@@ -240,49 +275,128 @@ export default function SubjectPage() {
               </div>
             )}
 
-            {activeTab === 'questions' && (
-              <div className="space-y-6">
+            {activeTab === 'videos' && (
+              <div className="space-y-6 h-full flex flex-col">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-bold flex items-center gap-2">
-                    <HelpCircle className="w-5 h-5 text-orange-500" /> 
-                    Important Exam Questions
+                    <PlaySquare className="w-6 h-6 text-red-500" /> 
+                    Video Learning Hub
                   </h2>
-                  <div className="text-sm font-medium text-slate-500">
-                    Progress: {doneQuestions.size} / {bigQuestions.length}
+                  <div className="text-sm font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+                    Progress: {completedVideos.size} / {videos.length} Videos
                   </div>
                 </div>
                 
-                <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mb-6">
+                <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mb-2">
                   <div 
-                    className="bg-indigo-600 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${bigQuestions.length ? (doneQuestions.size / bigQuestions.length) * 100 : 0}%` }}
+                    className="bg-red-500 h-2 rounded-full transition-all duration-500" 
+                    style={{ width: `${videos.length ? (completedVideos.size / videos.length) * 100 : 0}%` }}
                   ></div>
                 </div>
 
-                <div className="space-y-3">
-                  {bigQuestions.map((q, index) => (
-                    <div 
-                      key={index} 
-                      className={`p-4 rounded-xl border transition-all ${doneQuestions.has(index) ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-300'}`}
-                    >
-                      <div className="flex gap-4">
-                        <button 
-                          onClick={() => toggleQuestionDone(index)}
-                          className={`shrink-0 mt-0.5 ${doneQuestions.has(index) ? 'text-green-500' : 'text-slate-300 hover:text-indigo-400'}`}
-                        >
-                          <CheckCircle2 className="w-6 h-6" />
-                        </button>
-                        <div className="flex-1">
-                          <p className={`font-medium ${doneQuestions.has(index) ? 'text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'}`}>
-                            {q}
-                          </p>
-                        </div>
-                        <button className="text-slate-400 hover:text-indigo-500 shrink-0">
-                          <Bookmark className="w-5 h-5" />
-                        </button>
-                      </div>
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1">
+                  
+                  {/* Left Sidebar: Playlist */}
+                  <div className="xl:col-span-1 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-800/50 h-[600px]">
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center gap-2 font-semibold">
+                      <ListVideo className="w-5 h-5 text-indigo-500" /> Playlist ({videos.length})
                     </div>
-                  ))}
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                      {videos.length === 0 ? (
+                        <div className="text-center p-4 text-slate-500 text-sm">No videos available yet.</div>
+                      ) : (
+                        videos.map((v) => (
+                          <button
+                            key={v.id}
+                            onClick={() => setCurrentVideo(v)}
+                            className={`w-full text-left flex gap-3 p-2 rounded-lg transition-all ${currentVideo?.id === v.id ? 'bg-white dark:bg-slate-700 shadow-sm border border-slate-200 dark:border-slate-600 ring-1 ring-indigo-500' : 'hover:bg-slate-200/50 dark:hover:bg-slate-700/50 border border-transparent'}`}
+                          >
+                            <div className="relative w-24 h-16 rounded overflow-hidden shrink-0 bg-slate-200 dark:bg-slate-900 flex items-center justify-center">
+                              {v.thumbnailUrl ? (
+                                <img src={v.thumbnailUrl} alt={v.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <PlayCircle className="w-6 h-6 text-slate-400" />
+                              )}
+                              {completedVideos.has(v.id) && (
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
+                                  <CheckCircle className="w-6 h-6 text-green-400" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0 py-1">
+                              <h4 className={`text-sm font-semibold line-clamp-2 ${currentVideo?.id === v.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                                {v.title}
+                              </h4>
+                              {v.duration && <p className="text-xs text-slate-500 flex items-center gap-1 mt-1"><Clock className="w-3 h-3" /> {v.duration}</p>}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Main Video Area */}
+                  <div className="xl:col-span-2 flex flex-col gap-4">
+                    {currentVideo ? (
+                      <>
+                        <div className="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-lg border border-slate-800 relative group">
+                          {currentVideo.youtubeId ? (
+                            <iframe 
+                              src={`https://www.youtube.com/embed/${currentVideo.youtubeId}?autoplay=0&rel=0`}
+                              title={currentVideo.title}
+                              className="w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            ></iframe>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center flex-col text-slate-400">
+                              <PlaySquare className="w-16 h-16 mb-4 opacity-50" />
+                              <p>Invalid YouTube URL</p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                {currentVideo.unit && <span className="text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 px-2 py-0.5 rounded">{currentVideo.unit}</span>}
+                                {currentVideo.difficulty && <span className="text-xs border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">{currentVideo.difficulty}</span>}
+                              </div>
+                              <h1 className="text-xl font-bold text-slate-900 dark:text-white">{currentVideo.title}</h1>
+                            </div>
+                            <button
+                              onClick={() => toggleVideoDone(currentVideo.id)}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors shrink-0 ${completedVideos.has(currentVideo.id) ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+                            >
+                              <CheckCircle2 className="w-5 h-5" />
+                              {completedVideos.has(currentVideo.id) ? 'Completed' : 'Mark as Completed'}
+                            </button>
+                          </div>
+                          
+                          <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                            <h3 className="font-semibold text-sm mb-2 text-slate-700 dark:text-slate-300">About this Explanation</h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">
+                              {currentVideo.description || "No description provided."}
+                            </p>
+                            
+                            {currentVideo.tags && currentVideo.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-4">
+                                {currentVideo.tags.map((tag, idx) => (
+                                  <span key={idx} className="text-xs bg-slate-100 dark:bg-slate-900 text-slate-500 px-2 py-1 rounded-md">#{tag}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex-1 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-slate-500 p-8 h-[500px]">
+                        <PlaySquare className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
+                        <p className="text-lg font-medium">Select a video to start learning</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

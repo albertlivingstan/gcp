@@ -297,15 +297,15 @@ export default function QuizSystem() {
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSetName} className="flex gap-2">
+            <form onSubmit={handleSetName} className="flex gap-2 w-full sm:w-auto mt-4 sm:mt-0">
               <input 
                 type="text" 
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
                 placeholder="Enter your name" 
-                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto flex-1"
               />
-              <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold transition-colors">
+              <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold transition-colors shrink-0">
                 Save
               </button>
             </form>

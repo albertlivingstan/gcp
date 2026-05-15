@@ -28,7 +28,7 @@ const NAV_ITEMS = [
 ];
 
 export default function SmartHubLayout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, userRole, loginWithGoogle, logout } = useAuth();
@@ -58,13 +58,13 @@ export default function SmartHubLayout({ children }) {
       
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
-        {!sidebarOpen && (
+        {sidebarOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
-            onClick={() => setSidebarOpen(true)}
+            onClick={() => setSidebarOpen(false)}
           />
         )}
       </AnimatePresence>

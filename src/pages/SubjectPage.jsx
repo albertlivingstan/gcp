@@ -35,7 +35,7 @@ export default function SubjectPage() {
   const basePpts = mockPPTs[id] || [];
   const bigQuestions = mockBigQuestions[id] || [];
   
-  const [activeTab, setActiveTab] = useState('videos');
+  const [activeTab, setActiveTab] = useState('ppt');
   const [personalNote, setPersonalNote] = useState('');
   const [publicNoteTitle, setPublicNoteTitle] = useState('');
   const [publicNoteContent, setPublicNoteContent] = useState('');

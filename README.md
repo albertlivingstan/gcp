@@ -1,16 +1,238 @@
-# React + Vite
+<div align="center">
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![StudyHub Banner](https://img.shields.io/badge/StudyHub-AI%20Powered%20LMS-blueviolet?style=for-the-badge)
 
-Currently, two official plugins are available:
+![React](https://img.shields.io/badge/React-19-blue?style=flat-square\&logo=react)
+![Firebase](https://img.shields.io/badge/Firebase-Backend-orange?style=flat-square\&logo=firebase)
+![Gemini AI](https://img.shields.io/badge/Gemini-AI-green?style=flat-square\&logo=google)
+![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square\&logo=vercel)
+![License](https://img.shields.io/badge/License-MIT-success?style=flat-square)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### 🌐 Live Demo
 
-## React Compiler
+🔗 [https://gcp-dusky.vercel.app](https://gcp-dusky.vercel.app)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 💻 GitHub Repository
 
-## Expanding the ESLint configuration
+🔗 [https://github.com/albertlivingstan/gcp.git](https://github.com/albertlivingstan/gcp.git)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+</div>
+
+---
+
+# ✨ About StudyHub
+
+**StudyHub** is a modern **AI-powered Learning Management System (LMS)** built specifically for engineering students.
+The platform combines:
+
+✅ Real-time communication
+✅ AI-assisted learning
+✅ Gamified student engagement
+✅ Modern responsive UI
+✅ Cloud-powered backend services
+
+The goal of StudyHub is to make learning smarter, faster, and more interactive using the power of Artificial Intelligence and modern web technologies.
+
+---
+
+# 🎯 Key Features
+
+## 🤖 AI Tutor Integration
+
+* Instant doubt clarification using **Gemini AI**
+* Smart academic assistance
+* Interactive AI-powered responses
+
+## 💬 Real-Time Multimedia Chat
+
+* Student collaboration system
+* Real-time messaging
+* Multimedia sharing support
+
+## 📈 Gamified Progress Tracking
+
+* Learning achievements
+* Student performance tracking
+* Motivation through progress systems
+
+## 🔐 Authentication & Security
+
+* Firebase Authentication
+* Secure cloud database integration
+* Protected user sessions
+
+## 📱 Responsive Modern UI
+
+* Mobile-friendly interface
+* Clean and modern design
+* Optimized user experience
+
+---
+
+# 🛠️ Tech Stack
+
+| Technology | Purpose                  |
+| ---------- | ------------------------ |
+| React      | Frontend Framework       |
+| Vite       | Fast Build Tool          |
+| Firebase   | Backend & Authentication |
+| Gemini AI  | AI Tutor Integration     |
+| JavaScript | Application Logic        |
+| Vercel     | Deployment Platform      |
+
+---
+
+# ⚡ Project Architecture
+
+```bash
+StudyHub
+│
+├── src
+│   ├── components
+│   ├── pages
+│   ├── firebase
+│   ├── ai
+│   ├── chat
+│   └── utils
+│
+├── public
+├── package.json
+└── vite.config.js
+```
+
+---
+
+# 🚀 Getting Started
+
+## 📥 Clone the Repository
+
+```bash
+git clone https://github.com/albertlivingstan/gcp.git
+```
+
+## 📂 Navigate to Project
+
+```bash
+cd gcp
+```
+
+## 📦 Install Dependencies
+
+```bash
+npm install
+```
+
+## ▶️ Start Development Server
+
+```bash
+npm run dev
+```
+
+---
+
+# 🔥 Firebase Setup
+
+Create a `.env` file in the root directory:
+
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+```
+
+---
+
+# 🤖 Gemini AI Setup
+
+Add your Gemini API key inside `.env`:
+
+```env
+VITE_GEMINI_API_KEY=your_gemini_api_key
+```
+
+---
+
+# 📸 Screenshots
+
+## 🏠 Dashboard
+
+*Add your screenshot here*
+
+## 💬 AI Chat
+
+*Add your screenshot here*
+
+## 📊 Progress Tracking
+
+*Add your screenshot here*
+
+---
+
+# 🎥 Project Demo
+
+📹 Add your demo video link here
+
+```md
+[Watch Demo](YOUR_VIDEO_LINK)
+```
+
+---
+
+# 🌟 Future Enhancements
+
+* 📚 Personalized AI Study Plans
+* 🧠 Smart Quiz Generator
+* 🎥 Live Video Classes
+* 🏆 Leaderboards & Rewards
+* 📊 Advanced Analytics Dashboard
+
+---
+
+# 📈 Learning Outcomes
+
+This project helped me improve my skills in:
+
+✅ Full Stack Development
+✅ React Ecosystem
+✅ Firebase Integration
+✅ AI Integration in Web Apps
+✅ Real-Time Systems
+✅ UI/UX Design
+✅ Cloud Deployment
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome!
+
+```bash
+Fork → Clone → Create Branch → Commit → Push → Pull Request
+```
+
+---
+
+# 📄 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+# 👨‍💻 Developer
+
+### Albert Livingstan
+
+🔗 LinkedIn: https://www.linkedin.com/posts/albert-livingstan-g_react-firebase-ai-ugcPost-7467245104680931331-cNMU/?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEXLttIBmxrwBidLCsac_9-ityJgCER6myU
+
+---
+
+<div align="center">
+
+## ⭐ If you like this project, give it a star on GitHub ⭐
+
+### 🚀 StudyHub — Smart Learning Powered by AI
+
+</div>

@@ -68,6 +68,11 @@ The goal of StudyHub is to make learning smarter, faster, and more interactive u
 * Optimized user experience
 
 ---
+High-Level System Architecture
+The following diagram illustrates how the frontend React application, the custom real-time messaging server, Firebase infrastructure, and Generative AI services interact:
+<img width="1535" height="419" alt="Screenshot 2026-06-01 at 10 23 42 PM" src="https://github.com/user-attachments/assets/6e410c95-1254-4c99-b468-8d0de4bb9522" />
+
+
 
 # 🛠️ Tech Stack
 
@@ -85,19 +90,47 @@ The goal of StudyHub is to make learning smarter, faster, and more interactive u
 # ⚡ Project Architecture
 
 ```bash
-StudyHub
-│
-├── src
-│   ├── components
-│   ├── pages
-│   ├── firebase
-│   ├── ai
-│   ├── chat
-│   └── utils
-│
-├── public
-├── package.json
-└── vite.config.js
+gcp/
+├── package.json                   # Client dependencies (React 19, Tailwind v4, Lucide, Framer Motion)
+├── vite.config.js                 # Vite bundler configuration & PWA Plugin
+├── 24CS2019_DevOps_Lab.html       # [Standalone] DevOps interactive lab interface
+├── gcp_lab_revision_site.html     # [Standalone] GCP console and CLI revision guide
+├── server/                        # Real-Time WebSocket Server
+│   ├── package.json               # Server metadata (Express 5, Socket.IO 4)
+│   └── index.js                   # Main Node.js socket server entry point
+└── src/                           # Client React Source
+    ├── main.jsx                   # Application entry point & DOM Mounting
+    ├── App.jsx                    # Central route orchestration & Theme controller
+    ├── firebase.js                # Firebase configuration & service initialization
+    ├── index.css                  # Tailwinds directives & globally managed style systems
+    ├── components/                # Reusable presentation and utility modules
+    │   ├── layout/
+    │   │   └── SmartHubLayout.jsx # Master Layout wrapper for the Premium Smart Hub Dashboard
+    │   ├── ChatBox.jsx            # Gemini integration widget with system templates
+    │   ├── LiveChat.jsx           # Live peer chat workspace (attaches to socket)
+    │   ├── InstallPopup.jsx       # PWA add-to-home prompt controller
+    │   └── SplashScreen.jsx       # Introductory visual sequence
+    ├── context/
+    │   └── AuthContext.jsx        # Google OAuth callback management, domain filters, and profiles
+    ├── data/
+    │   └── mockData.js            # Offline-fallback datasets (Subjects, PPTs, Big Questions)
+    ├── pages/                     # Routed page canvases
+    │   ├── Home.jsx               # Navigation catalog showcasing subjects & standalone labs
+    │   ├── SubjectPage.jsx        # Core view containing materials, video playlist, and scratchpads
+    │   ├── TrendsPage.jsx         # Study statistics and tracking page
+    │   ├── admin/                 # Material uploading, approval and teacher portals
+    │   │   ├── AdminDashboard.jsx
+    │   │   └── AdminLogin.jsx
+    │   ├── student/               # Smart Hub portals
+    │   │   ├── StudentDashboard.jsx
+    │   │   ├── SubjectsHub.jsx    # Managed subjects viewport
+    │   │   ├── QuizSystem.jsx     # Gamified MCQs & dynamic score tracking
+    │   │   ├── MarksPortal.jsx    # Grades tracking panel
+    │   │   └── AITutor.jsx        # Direct dedicated chatbot canvas
+    │   └── teacher/
+    │       └── TeacherDashboard.jsx
+    └── utils/
+        └── cn.js                  # CSS class-merging helper (clsx + tailwind-merge)
 ```
 
 ---

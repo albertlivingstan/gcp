@@ -18,9 +18,9 @@ export default function SubjectPage() {
       try {
         const qs = await getDocs(collection(db, 'subjects'));
         const subs = [];
-        qs.forEach(d => subs.push({id: d.id, ...d.data()}));
+        qs.forEach(d => subs.push({ id: d.id, ...d.data() }));
         setFirebaseSubjects(subs);
-      } catch(err){
+      } catch (err) {
         console.error(err);
       } finally {
         setIsLoadingSubject(false);
@@ -34,7 +34,7 @@ export default function SubjectPage() {
 
   const basePpts = mockPPTs[id] || [];
   const bigQuestions = mockBigQuestions[id] || [];
-  
+
   const [activeTab, setActiveTab] = useState('ppt');
   const [personalNote, setPersonalNote] = useState('');
   const [publicNoteTitle, setPublicNoteTitle] = useState('');
@@ -54,7 +54,7 @@ export default function SubjectPage() {
         pptSnapshot.forEach((doc) => {
           savedPPTs.push({ id: doc.id, ...doc.data() });
         });
-        
+
         const subjectPpts = savedPPTs
           .filter(ppt => ppt.subjectId === id)
           .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
@@ -72,7 +72,7 @@ export default function SubjectPage() {
         const subjectVideos = savedVideos
           .filter(v => v.subjectId === id)
           .sort((a, b) => (a.order || 0) - (b.order || 0));
-        
+
         setVideos(subjectVideos);
         if (subjectVideos.length > 0 && !currentVideo) {
           setCurrentVideo(subjectVideos[0]);
@@ -103,17 +103,17 @@ export default function SubjectPage() {
         return url.replace(/\/edit.*$/, '/embed?start=false&loop=false&delayms=3000').replace(/\/view.*$/, '/embed?start=false&loop=false&delayms=3000');
       }
     }
-    
+
     // For PDFs uploaded to Firebase or anywhere
     if (fileName && fileName.toLowerCase().endsWith('.pdf')) {
       return url; // iFrame can usually render PDF directly
     }
-    
+
     // For PPT/PPTX uploaded, use Google Docs Viewer
     if (fileName && (fileName.toLowerCase().endsWith('.ppt') || fileName.toLowerCase().endsWith('.pptx') || fileName.toLowerCase().endsWith('.doc') || fileName.toLowerCase().endsWith('.docx'))) {
       return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
     }
-    
+
     return url;
   };
 
@@ -133,7 +133,7 @@ export default function SubjectPage() {
   const handleNoteSubmit = async (e) => {
     e.preventDefault();
     if (!publicNoteTitle.trim() || !publicNoteContent.trim()) return;
-    
+
     const newNote = {
       title: publicNoteTitle,
       content: publicNoteContent,
@@ -142,7 +142,7 @@ export default function SubjectPage() {
       author: 'Student', // In a real app, this would be the logged-in user
       createdAt: new Date().toISOString()
     };
-    
+
     try {
       await addDoc(collection(db, 'pendingNotes'), newNote);
       setSubmittedNotes(prev => [...prev, { ...newNote, id: Date.now() }]);
@@ -207,19 +207,19 @@ export default function SubjectPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Tabs */}
           <div className="flex overflow-x-auto p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl">
-            <button 
+            <button
               onClick={() => setActiveTab('ppt')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'ppt' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
             >
               <BookOpen className="w-4 h-4" /> PPTs
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('videos')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'videos' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
             >
               <PlaySquare className="w-4 h-4 text-red-500" /> YouTube Explanations
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('notes')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'notes' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
             >
@@ -241,7 +241,7 @@ export default function SubjectPage() {
                         <FileText className="w-5 h-5 text-indigo-500" />
                         <span className="font-medium text-slate-800 dark:text-slate-200">{ppt.title || ppt.fileName}</span>
                       </div>
-                      <button 
+                      <button
                         onClick={() => ppt.fileData ? handleDownload(ppt.fileData, ppt.fileName) : window.open(ppt.url)}
                         className="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg flex items-center gap-1 text-sm font-medium transition-colors"
                       >
@@ -249,9 +249,9 @@ export default function SubjectPage() {
                       </button>
                     </div>
                     {ppt.url ? (
-                      <iframe 
-                        src={getEmbedUrl(ppt.url, ppt.fileName)} 
-                        className="w-full flex-1 min-h-[500px] bg-slate-100" 
+                      <iframe
+                        src={getEmbedUrl(ppt.url, ppt.fileName)}
+                        className="w-full flex-1 min-h-[500px] bg-slate-100"
                         frameBorder="0"
                         allowFullScreen={true}
                       ></iframe>
@@ -260,7 +260,7 @@ export default function SubjectPage() {
                         <FileText className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
                         <p className="text-lg font-medium text-slate-600 dark:text-slate-400">Document Uploaded</p>
                         <p className="text-sm mt-1 mb-4">Please download to view this file locally.</p>
-                        <button 
+                        <button
                           onClick={() => handleDownload(ppt.fileData, ppt.fileName)}
                           className="text-indigo-600 hover:underline font-medium flex items-center gap-1"
                         >
@@ -279,23 +279,23 @@ export default function SubjectPage() {
               <div className="space-y-6 h-full flex flex-col">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-bold flex items-center gap-2">
-                    <PlaySquare className="w-6 h-6 text-red-500" /> 
+                    <PlaySquare className="w-6 h-6 text-red-500" />
                     Video Learning Hub
                   </h2>
                   <div className="text-sm font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
                     Progress: {completedVideos.size} / {videos.length} Videos
                   </div>
                 </div>
-                
+
                 <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mb-2">
-                  <div 
-                    className="bg-red-500 h-2 rounded-full transition-all duration-500" 
+                  <div
+                    className="bg-red-500 h-2 rounded-full transition-all duration-500"
                     style={{ width: `${videos.length ? (completedVideos.size / videos.length) * 100 : 0}%` }}
                   ></div>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1">
-                  
+
                   {/* Left Sidebar: Playlist */}
                   <div className="xl:col-span-1 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-800/50 h-[600px]">
                     <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center gap-2 font-semibold">
@@ -341,7 +341,7 @@ export default function SubjectPage() {
                       <>
                         <div className="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-lg border border-slate-800 relative group">
                           {currentVideo.youtubeId ? (
-                            <iframe 
+                            <iframe
                               src={`https://www.youtube.com/embed/${currentVideo.youtubeId}?autoplay=0&rel=0`}
                               title={currentVideo.title}
                               className="w-full h-full"
@@ -355,7 +355,7 @@ export default function SubjectPage() {
                             </div>
                           )}
                         </div>
-                        
+
                         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                             <div>
@@ -373,13 +373,13 @@ export default function SubjectPage() {
                               {completedVideos.has(currentVideo.id) ? 'Completed' : 'Mark as Completed'}
                             </button>
                           </div>
-                          
+
                           <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
                             <h3 className="font-semibold text-sm mb-2 text-slate-700 dark:text-slate-300">About this Explanation</h3>
                             <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">
                               {currentVideo.description || "No description provided."}
                             </p>
-                            
+
                             {currentVideo.tags && currentVideo.tags.length > 0 && (
                               <div className="flex flex-wrap gap-2 mt-4">
                                 {currentVideo.tags.map((tag, idx) => (
@@ -404,23 +404,23 @@ export default function SubjectPage() {
             {activeTab === 'notes' && (
               <div className="space-y-6">
                 <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Users className="w-5 h-5 text-blue-500" /> 
+                  <Users className="w-5 h-5 text-blue-500" />
                   Community Notes
                 </h2>
-                
+
                 {/* Submit Form */}
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                   <h3 className="font-medium mb-3 text-sm">Contribute your notes</h3>
                   <form onSubmit={handleNoteSubmit} className="space-y-3">
-                    <input 
-                      type="text" 
-                      placeholder="Note Title" 
+                    <input
+                      type="text"
+                      placeholder="Note Title"
                       value={publicNoteTitle}
                       onChange={(e) => setPublicNoteTitle(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
-                    <textarea 
-                      placeholder="Write your study notes here..." 
+                    <textarea
+                      placeholder="Write your study notes here..."
                       rows="3"
                       value={publicNoteContent}
                       onChange={(e) => setPublicNoteContent(e.target.value)}
@@ -433,8 +433,8 @@ export default function SubjectPage() {
                         <input type="file" className="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg" />
                       </label>
                       <div className="flex-1 flex justify-end">
-                        <button 
-                          type="submit" 
+                        <button
+                          type="submit"
                           disabled={!publicNoteTitle || !publicNoteContent}
                           className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
                         >

@@ -137,6 +137,35 @@ export default function AdminDashboard() {
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectForm, setNewSubjectForm] = useState({ title: '', description: '', color: 'bg-blue-500', icon: 'Cpu' });
 
+  const [editingSubjectId, setEditingSubjectId] = useState(null);
+  const [editSubjectForm, setEditSubjectForm] = useState({ title: '', description: '', color: 'bg-blue-500' });
+
+  const handleEditSubjectClick = (s) => {
+    setEditingSubjectId(s.id);
+    setEditSubjectForm({ title: s.title, description: s.description, color: s.color || 'bg-blue-500' });
+  };
+
+  const handleUpdateSubject = async (subjectId) => {
+    if (!editSubjectForm.title || !editSubjectForm.description) {
+      triggerToast('Title and description are required.');
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'subjects', subjectId), {
+        title: editSubjectForm.title,
+        description: editSubjectForm.description,
+        color: editSubjectForm.color,
+        updatedAt: new Date().toISOString()
+      });
+      triggerToast('Subject updated successfully!');
+      setEditingSubjectId(null);
+      fetchSubjects();
+    } catch (err) {
+      console.error(err);
+      triggerToast('Failed to update subject.');
+    }
+  };
+
   const handleEditClick = (ppt) => {
     setEditingPptId(ppt.id);
     setEditForm({ title: ppt.title, subjectId: ppt.subjectId, url: ppt.url || '' });
@@ -1179,17 +1208,84 @@ export default function AdminDashboard() {
 
             <div className="divide-y divide-slate-200 dark:divide-slate-700">
               {allSubjects.map(s => (
-                <div key={s.id} className="py-4 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${s.color}`}></div>
-                    <div>
-                      <h3 className="font-semibold">{s.title}</h3>
-                      <p className="text-sm text-slate-500">{s.description.substring(0, 60)}...</p>
+                <div key={s.id} className="py-4">
+                  {editingSubjectId === s.id ? (
+                    /* ── Inline Edit Form ── */
+                    <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-indigo-300 dark:border-indigo-700 p-4 space-y-3">
+                      <h4 className="font-bold text-sm text-indigo-600 dark:text-indigo-400 mb-1">Editing: {s.id}</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Title</label>
+                          <input
+                            type="text"
+                            value={editSubjectForm.title}
+                            onChange={e => setEditSubjectForm({ ...editSubjectForm, title: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Color Theme</label>
+                          <select
+                            value={editSubjectForm.color}
+                            onChange={e => setEditSubjectForm({ ...editSubjectForm, color: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                          >
+                            <option value="bg-blue-500">Blue</option>
+                            <option value="bg-purple-500">Purple</option>
+                            <option value="bg-green-500">Green</option>
+                            <option value="bg-red-500">Red</option>
+                            <option value="bg-orange-500">Orange</option>
+                            <option value="bg-teal-500">Teal</option>
+                            <option value="bg-pink-500">Pink</option>
+                            <option value="bg-indigo-500">Indigo</option>
+                          </select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium mb-1">Description</label>
+                          <textarea
+                            rows="2"
+                            value={editSubjectForm.description}
+                            onChange={e => setEditSubjectForm({ ...editSubjectForm, description: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => setEditingSubjectId(null)}
+                          className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          <X className="w-4 h-4" /> Cancel
+                        </button>
+                        <button
+                          onClick={() => handleUpdateSubject(s.id)}
+                          className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          <Save className="w-4 h-4" /> Save Changes
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded">ID: {s.id}</span>
-                  </div>
+                  ) : (
+                    /* ── Normal Row ── */
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${s.color}`}></div>
+                        <div>
+                          <h3 className="font-semibold">{s.title}</h3>
+                          <p className="text-sm text-slate-500">{s.description.substring(0, 60)}{s.description.length > 60 ? '...' : ''}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded">ID: {s.id}</span>
+                        <button
+                          onClick={() => handleEditSubjectClick(s)}
+                          className="flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-indigo-200 dark:border-indigo-800/50"
+                        >
+                          <Edit className="w-4 h-4" /> Edit
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

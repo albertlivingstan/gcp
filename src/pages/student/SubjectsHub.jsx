@@ -4,8 +4,10 @@ import {
   Calculator, Brain, BookOpen, Code2,
   ChevronRight, Target, Hash, Clock, Zap,
   AlignLeft, Puzzle, BarChart2, GitBranch,
-  FileCode, Layers, Sigma, Activity
+  FileCode, Layers, Sigma, Activity,
+  MessageSquare, Mail, Type
 } from 'lucide-react';
+import PracticeSession from './PracticeSession';
 
 const APTITUDE_CATEGORIES = [
   {
@@ -87,6 +89,22 @@ const APTITUDE_CATEGORIES = [
       { name: 'Pseudocode Practice', icon: FileCode, difficulty: 'Medium', questions: 35 },
       { name: 'Competitive Programming', icon: Zap, difficulty: 'Hard', questions: 60 },
     ]
+  },
+  {
+    id: 'communication',
+    name: 'Communication & Writing',
+    icon: MessageSquare,
+    color: 'teal',
+    gradient: 'from-teal-500 to-emerald-500',
+    lightBg: 'bg-teal-50 dark:bg-teal-900/20',
+    border: 'border-teal-200 dark:border-teal-700/50',
+    iconBg: 'bg-teal-500',
+    badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+    description: 'Enhance email etiquette and passage recall abilities',
+    topics: [
+      { name: 'Passage Recall', icon: BookOpen, difficulty: 'Medium', questions: 20 },
+      { name: 'Email Writing', icon: Mail, difficulty: 'Hard', questions: 15 },
+    ]
   }
 ];
 
@@ -99,6 +117,7 @@ const DIFFICULTY_BADGE = {
 export default function SubjectsHub() {
   const [selectedCategory, setSelectedCategory] = useState(APTITUDE_CATEGORIES[0]);
   const [selectedTopic, setSelectedTopic] = useState(null);
+  const [isPracticing, setIsPracticing] = useState(false);
 
   const cat = selectedCategory;
   const Icon = cat.icon;
@@ -123,7 +142,7 @@ export default function SubjectsHub() {
               key={c.id}
               whileHover={{ y: -3 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => { setSelectedCategory(c); setSelectedTopic(null); }}
+              onClick={() => { setSelectedCategory(c); setSelectedTopic(null); setIsPracticing(false); }}
               className={`text-left p-4 rounded-2xl border transition-all duration-200 ${
                 isActive
                   ? `${c.lightBg} ${c.border} shadow-md`
@@ -164,7 +183,7 @@ export default function SubjectsHub() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
                 whileHover={{ x: 4 }}
-                onClick={() => setSelectedTopic(topic)}
+                onClick={() => { setSelectedTopic(topic); setIsPracticing(false); }}
                 className={`flex items-center gap-3 p-3.5 rounded-xl cursor-pointer border transition-all ${
                   isActive
                     ? `${cat.lightBg} ${cat.border} shadow-sm`
@@ -193,7 +212,13 @@ export default function SubjectsHub() {
 
         {/* Detail Panel */}
         <div className="md:col-span-2">
-          {selectedTopic ? (
+          {isPracticing && selectedTopic ? (
+            <PracticeSession 
+              topic={selectedTopic} 
+              category={cat} 
+              onClose={() => setIsPracticing(false)} 
+            />
+          ) : selectedTopic ? (
             <motion.div
               key={selectedTopic.name}
               initial={{ opacity: 0, y: 10 }}
@@ -241,6 +266,7 @@ export default function SubjectsHub() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsPracticing(true)}
                   className={`flex-1 py-3 rounded-2xl font-bold text-white bg-gradient-to-r ${cat.gradient} shadow-lg transition-shadow hover:shadow-xl`}
                 >
                   Start Practice

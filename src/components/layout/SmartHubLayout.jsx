@@ -38,9 +38,25 @@ export default function SmartHubLayout({ children }) {
       await loginWithGoogle();
     } catch (err) {
       console.error(err);
-      if (err.message && !err.message.includes("closed by user")) {
-        alert("Login failed: " + err.message);
+      const code = err.code || '';
+      // Ignore popup-closed-by-user (user cancelled)
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
+
+      let msg = 'Login failed. Please try again.';
+      if (code === 'auth/api-key-not-valid' || code === 'auth/invalid-api-key') {
+        msg = 'Firebase configuration error. Please contact the administrator.';
+      } else if (code === 'auth/network-request-failed') {
+        msg = 'Network error. Please check your internet connection and try again.';
+      } else if (code === 'auth/popup-blocked') {
+        msg = 'Popup was blocked by your browser. Please allow popups for this site.';
+      } else if (code === 'auth/unauthorized-domain') {
+        msg = 'This domain is not authorized for sign-in. Please contact the administrator.';
+      } else if (code === 'auth/operation-not-allowed') {
+        msg = 'Google Sign-In is not enabled. Please contact the administrator.';
+      } else if (err.message && !err.message.includes('closed by user')) {
+        msg = 'Login failed: ' + err.message;
       }
+      alert(msg);
     }
   };
 
